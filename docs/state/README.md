@@ -6,7 +6,7 @@ State in SWC lives in a store — a simple container that holds data and notifie
 
 ## Creating a store
 
-Use `createStore()` to define a store. Give it a name and a default state:
+Use `createStore()` to define a store. Give it an id and a default state:
 
 ```javascript
 import { createStore } from './src/js/store.js';
@@ -17,7 +17,7 @@ const userStore = createStore('userStore', {
 });
 ```
 
-The name is a string key that identifies the store. It matters when you're using [SSR](../ssr/README.md) — if the server has injected state under that key, `createStore()` picks it up automatically. If not (which is most of the time when starting out), it just uses your default. Either way the code is the same.
+The id is a string key that identifies the store. It is used by the [store registry](#store-registry) (`getStore()`) and by [SSR](../ssr/README.md) — if the server has injected state under that key, `createStore()` picks it up automatically. If not (which is most of the time when starting out), it just uses your default. Either way the code is the same.
 
 > **Lower-level option:** `new StateStore(initialState)` creates a store without a name. It works fine for simple cases, and it's what you'd extend if you want to add custom methods to a store. `createStore()` uses it internally.
 
@@ -132,18 +132,41 @@ import meta from './stores/user-store.json' with { type: 'json' };
 const userStore = createStore(meta);
 ```
 
-A `store.json` file defines the store's name and default state. It is used by both `createStore()` on the JS side and `StoreRegistry` on the PHP side — one source of truth for both:
+A `store.json` file defines the store's id and default state. It is used by both `createStore()` on the JS side and `StoreRegistry` on the PHP side — one source of truth for both:
 
 ```json
 {
-    "name": "userStore",
-    "title": "User Store",
+    "id": "userStore",
     "state": {
         "name": "",
         "loggedIn": false
     }
 }
 ```
+
+---
+
+## Store registry
+
+Every store created with `createStore()` is automatically registered by its id. You can retrieve any store from anywhere in your app — no imports required:
+
+```javascript
+import { getStore, getAllStores } from './src/js/store.js';
+
+// Get a single store by id
+const cart = getStore('cartStore');
+cart.setState({ items: [] });
+
+// Get all registered stores (returns a copy of the internal Map)
+const stores = getAllStores();
+stores.forEach((store, id) => console.log(id, store.getState()));
+```
+
+This is useful when integrating SWC with other libraries or frameworks that need access to your stores, or when building debug tooling that should be able to inspect all stores on the page.
+
+`new StateStore()` and `new AttributedStateStore()` are not registered — the registry is opt-in via `createStore()`.
+
+If `createStore()` is called twice with the same id, the second call returns the existing store and logs a warning — the first registration always wins.
 
 ---
 

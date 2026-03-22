@@ -1,5 +1,26 @@
 "use strict";
 
+/** @type {Map<string, StateStore>} */
+const _registry = new Map();
+
+/**
+ * Returns the store registered under the given id, or undefined if not found.
+ * Only stores created via createStore() are registered.
+ * @param {string} id
+ * @returns {StateStore|AttributedStateStore|undefined}
+ */
+export function getStore(id) {
+    return _registry.get(id);
+}
+
+/**
+ * Returns a read-only snapshot of all registered stores keyed by id.
+ * @returns {Map<string, StateStore>}
+ */
+export function getAllStores() {
+    return new Map(_registry);
+}
+
 export class StateStore {
     /**
      * @param {object} initialState The initial state of the store.
@@ -138,10 +159,16 @@ export function createStore(keyOrMeta, defaultState) {
     const isMeta = typeof keyOrMeta === 'object';
     const key    = isMeta ? keyOrMeta.id : keyOrMeta;
 
+    if (_registry.has(key)) {
+        console.warn(`SWC: a store with id "${key}" is already registered. Returning the existing store.`);
+        return _registry.get(key);
+    }
+
     if (isMeta && keyOrMeta.attributes) {
         const store       = new AttributedStateStore(keyOrMeta.attributes);
         const serverState = window.__SWC_INITIAL_STATE__?.[key];
         if (serverState) store._state = { ...store._state, ...serverState };
+        _registry.set(key, store);
         return store;
     }
 
@@ -149,5 +176,6 @@ export function createStore(keyOrMeta, defaultState) {
     const serverState = window.__SWC_INITIAL_STATE__?.[key];
     const store       = new StateStore(serverState ?? state);
     store._initialState = { ...state };
+    _registry.set(key, store);
     return store;
 }
