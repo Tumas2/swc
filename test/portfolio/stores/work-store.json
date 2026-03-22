@@ -1,0 +1,81 @@
+{
+    "name": "workStore",
+    "title": "Work History Store",
+    "state": {
+        "companies": [
+            {
+                "name": "Medieinstitutet",
+                "roles": [
+                    {
+                        "title": "Teacher (Programming)",
+                        "description": "Teach programming throughout various parts of the year.",
+                        "period": "2024 - 2025",
+                        "location": "STOCKHOLM"
+                    },
+                    {
+                        "title": "Teacher (Programming & Entrepreneurship)",
+                        "description": "Consulted at various times teaching various subjects, and help schools create courses.",
+                        "period": "2017 - 2021",
+                        "location": "MALMÖ"
+                    }
+                ]
+            },
+            {
+                "name": "BetUpmedia",
+                "roles": [
+                    {
+                        "title": "Technical Architect",
+                        "description": "Managed their entire tech stack, built requested features, helped with design, speed/CWV, and SEO.",
+                        "period": "SEP 2024 - SEP 2025",
+                        "location": "REMOTE"
+                    }
+                ]
+            },
+            {
+                "name": "Catena Media",
+                "roles": [
+                    {
+                        "title": "Head of Research & Development",
+                        "description": "Ran the R&D which primarily focused on researching/testing AI solutions for internal use.",
+                        "period": "FEB 2023 - AUG 2023",
+                        "location": "REMOTE"
+                    },
+                    {
+                        "title": "Technical Lead",
+                        "description": "Managed the North American tech team.",
+                        "period": "MAR 2021 - FEB 2023",
+                        "location": "REMOTE"
+                    },
+                    {
+                        "title": "Architect",
+                        "description": "Built various key products like an Ad-system to manage CTAs, User access/roles, Cache clearing, etc that would connect to and update all websites.",
+                        "period": "SEP 2017 - MAR 2021",
+                        "location": "REMOTE"
+                    }
+                ]
+            },
+            {
+                "name": "BestIn",
+                "roles": [
+                    {
+                        "title": "Full-stack Developer / Co-owner",
+                        "description": "Startup running several social media feeds and websites with affiliate links.",
+                        "period": "2018 - 2019",
+                        "location": "MALMÖ SWEDEN"
+                    }
+                ]
+            },
+            {
+                "name": "Flexeats",
+                "roles": [
+                    {
+                        "title": "Full-stack Developer / Co-owner",
+                        "description": "Built a real time ordering website for pre-ordering food from various restaurants.",
+                        "period": "2016 - 2018",
+                        "location": "MALMÖ SWEDEN"
+                    }
+                ]
+            }
+        ]
+    }
+}

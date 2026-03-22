@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWC Complex Test — Task Manager</title>
+    <link rel="stylesheet" href="./style.css">
+    <script type="importmap">
+        { "imports": { "swc": "./swc.js" } }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+</head>
+<body>
+    <app-shell>
+        <task-header slot="header"></task-header>
+        <task-form   slot="form"></task-form>
+        <task-list   slot="list"></task-list>
+        <task-stats  slot="sidebar"></task-stats>
+    </app-shell>
+</body>
+</html>

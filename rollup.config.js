@@ -3,7 +3,7 @@ import terser from '@rollup/plugin-terser';
 export default [
     // Standard build
     {
-        input: 'src/index.js',
+        input: 'src/js/index.js',
         output: {
             file: 'dist/swc.js',
             format: 'umd',
@@ -13,7 +13,7 @@ export default [
     },
     // Minified build
     {
-        input: 'src/index.js',
+        input: 'src/js/index.js',
         output: {
             file: 'dist/swc.min.js',
             format: 'umd',
@@ -25,7 +25,7 @@ export default [
     // Router builds
     // Standard build
     {
-        input: 'src/router/index.js',
+        input: 'src/js/router/index.js',
         output: {
             file: 'dist/swc-router.js',
             format: 'umd',
@@ -35,7 +35,7 @@ export default [
     },
     // Minified build
     {
-        input: 'src/router/index.js',
+        input: 'src/js/router/index.js',
         output: {
             file: 'dist/swc-router.min.js',
             format: 'umd',

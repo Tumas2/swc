@@ -1,0 +1,52 @@
+:host { display: block; }
+
+h2 {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #111;
+    margin: 0 0 1.25rem;
+}
+
+.company { margin-bottom: 0.25rem; }
+
+.company-name {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #111;
+    margin: 1.25rem 0 0.6rem;
+}
+
+.company:first-of-type .company-name { margin-top: 0; }
+
+.role {
+    border-left: 2px solid #d97706;
+    padding: 0.35rem 0 0.35rem 1rem;
+    margin-bottom: 0.7rem;
+}
+
+.role-title {
+    font-family: monospace;
+    font-size: 0.83rem;
+    font-weight: bold;
+    color: #d97706;
+    margin-bottom: 0.3rem;
+}
+
+.role-desc {
+    font-family: monospace;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: #333;
+    margin: 0 0 0.3rem;
+    max-width: 58ch;
+}
+
+.role-meta {
+    font-family: monospace;
+    font-size: 0.68rem;
+    color: #d97706;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}

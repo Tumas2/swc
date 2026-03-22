@@ -1,0 +1,29 @@
+:host {
+    display: block;
+    background: #fff;
+    padding: 3rem 2rem 4rem;
+}
+
+.about-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+h2 {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 2rem;
+    color: #111;
+    margin: 0 0 2rem;
+}
+
+.about-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 3rem;
+    align-items: start;
+}
+
+@media (max-width: 860px) {
+    .about-grid { grid-template-columns: 1fr; }
+}

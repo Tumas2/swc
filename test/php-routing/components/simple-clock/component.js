@@ -23,7 +23,7 @@ class SimpleClock extends NanoRenderStatefulElement {
 
     onUnmount() {
         clearInterval(this.intervalID);
-        this.resetState('counter');
+        counterStore.resetState();
     }
 
     computed() {

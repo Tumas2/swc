@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <?php
-$base_url = '/test/tums';
+$base_url = '/swc/test/tums';
 ?>
 <head>
     <meta charset="UTF-8">
@@ -71,39 +71,43 @@ $base_url = '/test/tums';
 
                 <!-- Single Post -->
                 <router-route path="/blog/:slug" src="./components/pages/post/index.html">
-                    <?php 
-                    // Check if URI starts with /blog/
-                    if (strpos($_SERVER['REQUEST_URI'], "{$base_url}/blog/") === 0) {
-                        $path_parts = explode('/', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
-                        // Remove empty elements from end if trailing slash exists
-                        $path_parts = array_filter($path_parts);
-                        $slug = end($path_parts);
-                        
-                        // Ensure we aren't matching 'blog' itself
-                        if ($slug && $slug !== 'blog') {
-                             $html = file_get_contents(__DIR__ . '/components/pages/post/index.html');
-
-                            $api_url = "https://api.tums.se/wp-json/wp/v2/posts?slug={$slug}&_fields=id,title,content,date";
-                            $sslOptions = [
-                                "ssl" => [
-                                    "verify_peer" => false, 
-                                    "verify_peer_name" => false,
-                                ],
-                            ];
-                            $posts = @file_get_contents($api_url, false, stream_context_create($sslOptions));
+                    <post-page>
+                        <!-- <template shadowrootmode="open"> -->
+                        <?php 
+                        // Check if URI starts with /blog/
+                        if (strpos($_SERVER['REQUEST_URI'], "{$base_url}/blog/") === 0) {
+                            $path_parts = explode('/', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+                            // Remove empty elements from end if trailing slash exists
+                            $path_parts = array_filter($path_parts);
+                            $slug = end($path_parts);
                             
-                            if ($posts) {
-                                $data = json_decode($posts, true);
-                                if (!empty($data)) {
-                                    $post = json_encode($data[0]);
-                                    $script = "<script type='application/json' id='server-data-post'>{$post}</script>";
-                                     $html = str_replace('</post-page>', $script . '</post-page>', $html);
+                            // Ensure we aren't matching 'blog' itself
+                            if ($slug && $slug !== 'blog') {
+                                $html = file_get_contents(__DIR__ . '/components/pages/post/markup.html');
+
+                                $api_url = "https://api.tums.se/wp-json/wp/v2/posts?slug={$slug}&_fields=id,title,content,date";
+                                $sslOptions = [
+                                    "ssl" => [
+                                        "verify_peer" => false, 
+                                        "verify_peer_name" => false,
+                                    ],
+                                ];
+                                $posts = @file_get_contents($api_url, false, stream_context_create($sslOptions));
+                                
+                                if ($posts) {
+                                    $data = json_decode($posts, true);
+                                    if (!empty($data)) {
+                                        $post = json_encode($data[0]);
+                                        $script = "<script type='application/json' id='server-data-post'>{$post}</script>";
+                                        $html = str_replace('</post-page>', $script . '</post-page>', $html);
+                                    }
                                 }
+                                echo $html;
                             }
-                            echo $html;
-                        }
-                    } 
-                    ?>
+                        } 
+                        ?>
+                        <!-- </template> -->
+                    </post-page>
                 </router-route>
 
                 <!-- 404 -->

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <?php
-$base_url = '/test/php-routing'; //'/swc/test/php-routing'
+$base_url = '/swc/test/php-routing'; //'/swc/test/php-routing'
 ?>
 <head>
     <meta charset="UTF-8">

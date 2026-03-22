@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TK — Team lead, developer, teacher.</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "/swc/test/portfolio/swc.js"
+        }
+    }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-family: monospace; }
+        body { background: #fff; }
+    </style>
+</head>
+<body>
+    <site-nav></site-nav>
+    <hero-section></hero-section>
+    <about-section>
+        <work-history slot="history"></work-history>
+        <skills-grid slot="skills"></skills-grid>
+    </about-section>
+
+    <script type="module" src="./components/index.js"></script>
+</body>
+</html>

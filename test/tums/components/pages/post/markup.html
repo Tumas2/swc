@@ -1,0 +1,18 @@
+<div>
+    <router-link to="/blog" class="back-link">← Back to Blog</router-link>
+    <article>
+        {{#if postStore.loading}}
+        <div>Loading post...</div>
+        {{else}}
+        {{#if postStore.post}}
+        <h1>{{{ postStore.post.title.rendered }}}</h1>
+        <div class="meta">Published on {{postStore.post.date}}</div>
+        <div class="content">
+            {{{ postStore.post.content.rendered }}}
+        </div>
+        {{else}}
+        <div>Post not found</div>
+        {{/if}}
+        {{/if}}
+    </article>
+</div>

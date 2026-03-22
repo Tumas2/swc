@@ -28,7 +28,7 @@ class CounterControl extends NanoRenderStatefulElement {
 
     onUnmount() {
         // clearInterval(this.intervalID);
-        this.resetState('counter');
+        counterStore.resetState();
     }
 
 }

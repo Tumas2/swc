@@ -1,6 +1,16 @@
-import { NanoRenderStatefulElement } from '../../../swc.js';
+import { NanoRenderStatefulElement, StateStore } from '../../../swc.js';
+
+export const postStore = new StateStore({
+    loading: true,
+    post: null
+});
+
 
 export class PostPage extends NanoRenderStatefulElement {
+    getTemplatePath() {
+        return new URL('markup.html', import.meta.url).pathname;
+    }
+
     getStyles() {
         const sheet = new CSSStyleSheet();
         sheet.replaceSync(`
@@ -51,26 +61,45 @@ export class PostPage extends NanoRenderStatefulElement {
         return [sheet];
     }
 
-    computed() {
-        const ssrScript = this.querySelector('#server-data-post');
-        if (ssrScript) {
-            try {
-                const post = JSON.parse(ssrScript.textContent);
-                return { post, loading: false };
-            } catch (e) {
-                console.error("Failed to parse SSR data", e);
-            }
+    getStores() {
+        return {
+            postStore
         }
-        return { post: null, loading: true };
     }
 
     onMount() {
-        if (this.state.loading) {
+        const { loading } = postStore.getState();
+        if (loading) {
             this.fetchPost();
         }
     }
 
+    computed(state) {
+        const ssrScript = this.querySelector('#server-data-post');
+        if (ssrScript) {
+            try {
+                const post = JSON.parse(ssrScript.textContent);
+                return { postStore: { post, loading: false } }
+            } catch (e) {
+                console.log("Failed to parse SSR data", e);
+            }
+        }
+        return {};
+    }
+
     async fetchPost() {
+
+        const ssrScript = this.querySelector('#server-data-post');
+        if (ssrScript) {
+            try {
+                const post = JSON.parse(ssrScript.textContent);
+                postStore.setState({ postStore: { post, loading: false } })
+                return;
+            } catch (e) {
+                console.log("Failed to parse SSR data", e);
+            }
+        }
+
         // Extract slug from URL. Simple approach for now.
         const pathParts = window.location.pathname.split('/');
         const slug = pathParts[pathParts.length - 1]; // Assumes /blog/:slug
@@ -81,36 +110,16 @@ export class PostPage extends NanoRenderStatefulElement {
             const res = await fetch(`https://api.tums.se/wp-json/wp/v2/posts?slug=${slug}&_fields=id,title,content,date`);
             const data = await res.json();
             if (data && data.length > 0) {
-                this.setState({ post: data[0], loading: false });
+                postStore.setState({ post: data[0], loading: false });
             } else {
-                this.setState({ loading: false, error: "Post not found" });
+                postStore.setState({ loading: false, error: "Post not found" });
             }
         } catch (err) {
             console.error(err);
-            this.setState({ loading: false, error: "Failed to load" });
+            postStore.setState({ loading: false, error: "Failed to load" });
         }
     }
 
-    view() {
-        const { post, loading, error } = this.state;
-
-        if (loading) return `<div>Loading post...</div>`;
-        if (error) return `<div>Error: ${error}</div>`;
-        if (!post) return `<div>Post not found</div>`;
-
-        return `
-            <div>
-                <router-link to="/swc/test/tums/blog" class="back-link">← Back to Blog</router-link>
-                <article>
-                    <h1>{{{ post.title.rendered }}}</h1>
-                    <div class="meta">Published on ${new Date(post.date).toLocaleDateString()}</div>
-                    <div class="content">
-                        {{{ post.content.rendered }}}
-                    </div>
-                </article>
-            </div>
-        `;
-    }
 }
 
 customElements.define('post-page', PostPage);

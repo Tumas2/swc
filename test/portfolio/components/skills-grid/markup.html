@@ -1,0 +1,23 @@
+<h2>Skills</h2>
+<input
+    id="skill-search"
+    name="skill-search"
+    class="search"
+    type="text"
+    placeholder="Search skill..."
+    aria-label="Search skills"
+    oninput="handleInput"
+    value="{{skillsStore.query}}"
+>
+<div class="skills-list">
+    {{#each filteredSkills}}
+    <span class="chip">
+        {{#if this.iconUrl}}
+        <img src="{{{this.iconUrl}}}" alt="" loading="lazy">
+        {{/if}}
+        {{this.name}}
+    </span>
+    {{else}}
+    <p class="no-results">No skills match "{{skillsStore.query}}".</p>
+    {{/each}}
+</div>

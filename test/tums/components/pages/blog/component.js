@@ -1,6 +1,6 @@
 import { NanoRenderStatefulElement, StateStore } from '../../../swc.js';
 
-export const postStore = new StateStore({
+export const postsStore = new StateStore({
     loading: true,
     posts: []
 });
@@ -69,12 +69,12 @@ export class BlogPage extends NanoRenderStatefulElement {
 
     getStores() {
         return {
-            postStore
+            postsStore
         }
     }
 
     onMount() {
-        const { loading } = postStore.getState();
+        const { loading } = postsStore.getState();
         if (loading) {
             this.fetchPosts();
         }
@@ -86,7 +86,7 @@ export class BlogPage extends NanoRenderStatefulElement {
         if (ssrScript) {
             try {
                 const posts = JSON.parse(ssrScript.textContent);
-                postStore.setState({ posts, loading: false });
+                postsStore.setState({ posts, loading: false });
             } catch (e) {
                 console.log("No posts from SSR");
             }
@@ -94,37 +94,14 @@ export class BlogPage extends NanoRenderStatefulElement {
             try {
                 const res = await fetch('https://api.tums.se/wp-json/wp/v2/posts?_fields=id,title,excerpt,slug,date');
                 const posts = await res.json();
-                postStore.setState({ posts, loading: false });
+                postsStore.setState({ posts, loading: false });
             } catch (err) {
                 console.error(err);
-                postStore.setState({ loading: false }); // Should handle error state
+                postsStore.setState({ loading: false }); // Should handle error state
             }
 
         }
 
-    }
-
-    view() {
-        return `
-            <h2>Latest Posts</h2>
-            
-            {{#if postStore.loading}}
-                <div class="loading">Loading posts...</div>
-            {{/if}}
-
-            <div class="post-grid">
-                {{#each postStore.posts}}
-                    <article class="post-card">
-                        <div class="post-date">{{ this.date }}</div>
-                        <h3>
-                            <router-link to="/blog/{{ this.slug }}">{{{ safe this.title.rendered }}}</router-link>
-                        </h3>
-                        <div class="post-excerpt">{{{ this.excerpt.rendered }}}</div>
-                        <router-link class="read-more" to="/blog/{{ this.slug }}">Read more →</router-link>
-                    </article>
-                {{/each}}
-            </div>
-        `;
     }
 }
 

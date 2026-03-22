@@ -3,7 +3,7 @@ DirectoryIndex index.php index.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
   # Set the base path for your application
-  RewriteBase /test/php-routing/
+  RewriteBase /swc/test/php-routing/
 
   # Route all requests starting with 'api/' to api.php
   # This rule must come before the general file/directory checks
@@ -14,5 +14,5 @@ DirectoryIndex index.php index.html
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   # Redirect all other requests to your index.html
-  RewriteRule . /test/php-routing/index.php [L]
+  RewriteRule . /swc/test/php-routing/index.php [L]
 </IfModule>

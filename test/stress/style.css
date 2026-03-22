@@ -1,0 +1,12 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: monospace;
+    background: #111;
+    color: #e5e5e5;
+    min-height: 100vh;
+}
+
+bench-runner {
+    display: block;
+}

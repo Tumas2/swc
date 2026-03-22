@@ -1,0 +1,15 @@
+{
+    "name": "swc/php",
+    "description": "PHP SSR package for SWC (Stateful Web Components) — renders components via Declarative Shadow DOM",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.5",
+        "ext-dom": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "SWC\\": "src/"
+        }
+    }
+}

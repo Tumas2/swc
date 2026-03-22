@@ -1,0 +1,13 @@
+<h2>Work History</h2>
+{{#each workStore.companies}}
+<div class="company">
+    <h3 class="company-name">{{this.name}}</h3>
+    {{#each this.roles}}
+    <div class="role">
+        <div class="role-title">{{this.title}}</div>
+        <p class="role-desc">{{this.description}}</p>
+        <div class="role-meta">{{this.period}}, {{this.location}}</div>
+    </div>
+    {{/each}}
+</div>
+{{/each}}

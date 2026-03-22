@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <?php
-$base_url = '/swc/test/php-portfolio';
+$base_url = '/swc/swc/test/php-portfolio';
 ?>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <base href="<?= $base_url; ?>/">
+    <base href="<?php echo $base_url; ?>/">
 
     <script type="importmap">
         {
@@ -28,7 +28,7 @@ $base_url = '/swc/test/php-portfolio';
     <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
 
     <script type="module" src="./components/index.js"></script>
-    <link rel="stylesheet" href="./output.css?ver=<?= time(); ?>">
+    <link rel="stylesheet" href="./output.css?ver=<?php echo time(); ?>">
 </head>
 
 <body>
@@ -48,7 +48,7 @@ $base_url = '/swc/test/php-portfolio';
 
     echo '<div style="color:black">'.$slug.'</div>';
     ?>
-    <router-container base-path="<?= $base_url; ?>">
+    <router-container base-path="<?php echo $base_url; ?>">
         <main-header></main-header>
 
         <main>
