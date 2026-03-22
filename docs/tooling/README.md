@@ -136,13 +136,13 @@ Type the prefix and press `Tab` (or select from IntelliSense) to expand.
 
 ## JSON Schemas
 
-The schemas live in `swc/schemas/` and are also bundled into the VS Code extension. If you use a different editor that supports JSON Schema, you can point directly to the schema files by adding a `$schema` field to your manifests.
+The schemas are hosted on GitHub and bundled into the VS Code extension. If you use a different editor that supports JSON Schema, add a `$schema` field to your manifests pointing at the raw GitHub URLs — your editor will fetch and cache them automatically.
 
 **`component.json`:**
 
 ```json
 {
-    "$schema": "../../../../schemas/component.schema.json",
+    "$schema": "https://raw.githubusercontent.com/Tumas2/swc/main/schemas/component.schema.json",
     "name": "my-card",
     "version": "1.0.0",
     "stores": []
@@ -153,13 +153,13 @@ The schemas live in `swc/schemas/` and are also bundled into the VS Code extensi
 
 ```json
 {
-    "$schema": "../../../../schemas/store.schema.json",
+    "$schema": "https://raw.githubusercontent.com/Tumas2/swc/main/schemas/store.schema.json",
     "id": "cartStore",
     "state": {}
 }
 ```
 
-The path `../../../../schemas/` matches the standard project layout where components sit at `components/<name>/` and stores at `stores/` — four levels up reaches the project root where `schemas/` lives. Adjust the path if your layout differs.
+The CLI generates these fields automatically when you run `create component` or `create store`. If you're adding them by hand, copy the URLs above verbatim — they work regardless of where your project lives.
 
 ---
 
