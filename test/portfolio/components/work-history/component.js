@@ -1,4 +1,4 @@
-import { NanoRenderStatefulElement, defineComponent } from 'swc';
+import { NanoRenderStatefulElement } from 'swc';
 import { workStore } from '../stores.js';
 import localStyles from './style.css' with { type: 'css' };
 import meta from './component.json' with { type: 'json' };
@@ -31,4 +31,4 @@ export class WorkHistory extends NanoRenderStatefulElement {
     }
 }
 
-defineComponent(meta, WorkHistory);
+customElements.define(meta.name, WorkHistory);

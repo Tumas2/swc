@@ -1,4 +1,4 @@
-import { StatefulElement, defineComponent } from '../../swc.js';
+import { StatefulElement } from '../../swc.js';
 import { teamStore } from '../stores.js';
 import meta from './component.json' with { type: 'json' };
 
@@ -75,4 +75,4 @@ export class TeamList extends StatefulElement {
     }
 }
 
-defineComponent(meta, TeamList);
+customElements.define(meta.name, TeamList);

@@ -1,4 +1,4 @@
-import { NanoRenderStatefulElement, defineComponent } from '../../swc.js';
+import { NanoRenderStatefulElement } from '../../swc.js';
 import { themeStore } from '../stores.js';
 import meta from './component.json' with { type: 'json' };
 import styles from './style.css' with { type: 'css' };
@@ -27,4 +27,4 @@ export class ThemeToggle extends NanoRenderStatefulElement {
     }
 }
 
-defineComponent(meta, ThemeToggle);
+customElements.define(meta.name, ThemeToggle);

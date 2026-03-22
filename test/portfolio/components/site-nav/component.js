@@ -1,4 +1,4 @@
-import { NanoRenderStatefulElement, defineComponent } from 'swc';
+import { NanoRenderStatefulElement } from 'swc';
 import localStyles from './style.css' with { type: 'css' };
 import meta from './component.json' with { type: 'json' };
 
@@ -19,4 +19,4 @@ export class SiteNav extends NanoRenderStatefulElement {
     }
 }
 
-defineComponent(meta, SiteNav);
+customElements.define(meta.name, SiteNav);

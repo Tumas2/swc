@@ -1,4 +1,3 @@
 export { StateStore, createStore } from '../../src/js/store.js';
 export { StatefulElement } from '../../src/js/StatefulElement.js';
 export { NanoRenderStatefulElement } from '../../src/js/NanoRenderer.js';
-export { defineComponent } from '../../src/js/index.js';

@@ -1,4 +1,4 @@
-import { NanoRenderStatefulElement, defineComponent } from '../../swc.js';
+import { NanoRenderStatefulElement } from '../../swc.js';
 import { profileStore } from '../stores.js';
 import meta from './component.json' with { type: 'json' };
 import styles from './style.css' with { type: 'css' };
@@ -27,4 +27,4 @@ export class ProfilePreview extends NanoRenderStatefulElement {
     }
 }
 
-defineComponent(meta, ProfilePreview);
+customElements.define(meta.name, ProfilePreview);

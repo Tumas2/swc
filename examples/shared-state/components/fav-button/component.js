@@ -1,4 +1,4 @@
-import { NanoRenderStatefulElement, defineComponent } from '../../swc.js';
+import { NanoRenderStatefulElement } from '../../swc.js';
 import { articleStore } from '../stores.js';
 import meta from './component.json' with { type: 'json' };
 import styles from './style.css' with { type: 'css' };
@@ -30,4 +30,4 @@ export class FavButton extends NanoRenderStatefulElement {
     }
 }
 
-defineComponent(meta, FavButton);
+customElements.define(meta.name, FavButton);

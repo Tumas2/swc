@@ -50,23 +50,22 @@ components/my-counter/
 └── style.css       — scoped styles for this component
 ```
 
-The split-file pattern also enables `component.json`, a small manifest that tells `ComponentRegistry` (PHP SSR) which stores a component needs, and lets you use `defineComponent()` instead of a hardcoded tag name string:
+The split-file pattern also enables `component.json`, a small manifest that tells `ComponentRegistry` (PHP SSR) which stores a component needs:
 
 ```json
 {
     "name": "my-counter",
     "version": "1.0.0",
-    "title": "My Counter",
     "stores": ["counterStore"]
 }
 ```
 
+Import it and pass the `name` to `customElements.define()`:
+
 ```javascript
-import { defineComponent } from './src/js/index.js';
 import meta from './component.json' with { type: 'json' };
 
-defineComponent(meta, MyCounter);
-// same as: customElements.define('my-counter', MyCounter)
+customElements.define(meta.name, MyCounter);
 ```
 
 ---

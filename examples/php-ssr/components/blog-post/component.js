@@ -1,4 +1,4 @@
-import { NanoRenderStatefulElement, createStore, defineComponent } from '../../swc.js';
+import { NanoRenderStatefulElement, createStore } from '../../swc.js';
 import meta from './component.json' with { type: 'json' };
 import storeJson from '../../stores/post-store.json' with { type: 'json' };
 
@@ -20,4 +20,4 @@ export class BlogPost extends NanoRenderStatefulElement {
     }
 }
 
-defineComponent(meta, BlogPost);
+customElements.define(meta.name, BlogPost);
