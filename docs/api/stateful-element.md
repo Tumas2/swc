@@ -103,15 +103,30 @@ render(): void
 
 Runs on every state change. Syncs `this.state`, passes the template and context through `getRenderer()`, then calls `html()` to update the DOM via `morph()`.
 
-Override when you need full control over the render cycle — for example, if you want `view()` called fresh on every render rather than using the cached template:
+Override when you need full control over the render cycle. Always call `this._syncState()` first so `this.state` is up to date, then call `this.html()` with your output.
+
+`render()` can be `async` — the most common reason to override it is fetching data when state changes:
 
 ```javascript
-render() {
+async render() {
     this._syncState();
-    this.html([this.view()]);
+
+    const { postId } = this.state.router.params;
+    if (!postId) {
+        this.html(['<p>No post selected.</p>']);
+        return;
+    }
+
+    const res  = await fetch(`/api/posts/${postId}`);
+    const post = await res.json();
+    this.html([`<h1>${post.title}</h1><p>${post.body}</p>`]);
 }
 ```
 
+You can also use an early `return` to skip a render entirely — useful when the component should stay blank until a condition is met.
+
+- Always call `this._syncState()` at the top.
+- Always call `this.html([...])` (or return early) — not calling it leaves the DOM stale.
 - Called automatically by store subscriptions on state changes.
 - Called once at the end of `connectedCallback()`.
 

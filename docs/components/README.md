@@ -102,7 +102,7 @@ onUnmount() {
 
 ### On state change — `render()`
 
-Called automatically every time a subscribed store changes. You rarely need to override this — it syncs state, runs the renderer, and updates the DOM via `morph()`. See the [API Reference](../api/stateful-element.md) if you need custom render behaviour.
+Called automatically every time a subscribed store changes. You rarely need to override this — it syncs state, runs the renderer, and updates the DOM via `morph()`. See the [API Reference](../api/stateful-element.md#render) if you need custom render behaviour.
 
 ---
 
