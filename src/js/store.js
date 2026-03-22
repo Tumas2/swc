@@ -179,3 +179,17 @@ export function createStore(keyOrMeta, defaultState) {
     _registry.set(key, store);
     return store;
 }
+
+/**
+ * Assigns the given exports to a window key, making them accessible from
+ * non-module scripts and external libraries. Call once from your JS entry point.
+ * Does nothing in non-browser environments.
+ *
+ * @param {object} exports - The values to expose (e.g. { getStore, getAllStores }).
+ * @param {string} [key='SWC'] - The window property name to assign to.
+ */
+export function exposeGlobally(exports, key = 'SWC') {
+    if (typeof window !== 'undefined') {
+        window[key] = exports;
+    }
+}

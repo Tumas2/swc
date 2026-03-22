@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SWC Component Manifest",
+    "description": "Manifest file for a Stateful Web Component",
+    "type": "object",
+    "required": ["name", "version"],
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string",
+            "description": "Custom element tag name — must be kebab-case and contain at least one hyphen",
+            "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)+$"
+        },
+        "version": {
+            "type": "string",
+            "description": "Semantic version string (e.g. \"1.0.0\")",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "stores": {
+            "type": "array",
+            "description": "Store IDs this component subscribes to — each string must match an id in a store manifest",
+            "items": {
+                "type": "string"
+            }
+        }
+    }
+}

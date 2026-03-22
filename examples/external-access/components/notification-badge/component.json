@@ -1,6 +1,6 @@
 {
     "$schema": "../../../../schemas/component.schema.json",
-    "name": "skills-grid",
+    "name": "notification-badge",
     "version": "1.0.0",
-    "stores": ["skillsStore"]
+    "stores": ["notificationStore"]
 }

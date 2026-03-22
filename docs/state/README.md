@@ -162,7 +162,26 @@ const stores = getAllStores();
 stores.forEach((store, id) => console.log(id, store.getState()));
 ```
 
-This is useful when integrating SWC with other libraries or frameworks that need access to your stores, or when building debug tooling that should be able to inspect all stores on the page.
+### Exposing to external scripts
+
+If you need the registry accessible from a plain `<script>` tag or another library, call `exposeGlobally()` once from your JS entry point and pass whatever you want to expose:
+
+```javascript
+import { exposeGlobally, getStore, getAllStores } from './src/js/store.js';
+
+exposeGlobally({ getStore, getAllStores });          // → window.SWC
+exposeGlobally({ getStore, getAllStores }, 'myApp'); // → window.myApp
+```
+
+Any script on the page can then reach the registry without imports:
+
+```javascript
+// plain <script>, no type="module" needed
+const store = window.SWC.getStore('cartStore');
+store.setState({ items: [] });
+```
+
+This is useful when integrating SWC with other libraries or frameworks, or when building debug tooling that should be able to inspect all stores on the page.
 
 `new StateStore()` and `new AttributedStateStore()` are not registered — the registry is opt-in via `createStore()`.
 

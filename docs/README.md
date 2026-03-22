@@ -28,6 +28,7 @@ If you're looking for a specific method or option, check the [API Reference](api
 ### Add-ons
 - [Router](router/README.md) — client-side routing
 - [SSR](ssr/README.md) — server-side rendering
+- [Tooling](tooling/README.md) — CLI, VS Code extension, and JSON schemas
 
 ### Reference
 - [API Reference](api/README.md) — complete method documentation

@@ -1,4 +1,5 @@
 {
+    "$schema": "../../../../schemas/component.schema.json",
     "name": "theme-toggle",
     "version": "1.0.0"
 }

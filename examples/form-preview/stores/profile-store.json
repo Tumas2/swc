@@ -1,4 +1,5 @@
 {
+    "$schema": "../../../../schemas/store.schema.json",
     "id": "profileStore",
     "attributes": {
         "name":   { "type": "string", "default": "" },

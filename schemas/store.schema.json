@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "SWC Store Manifest",
+    "description": "Manifest file for an SWC state store",
+    "type": "object",
+    "required": ["id"],
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "id": {
+            "type": "string",
+            "description": "Unique store identifier used as the registry key and in getStore() calls"
+        },
+        "state": {
+            "type": "object",
+            "description": "Initial state for a plain StateStore — provide either state or attributes, not both"
+        },
+        "attributes": {
+            "type": "object",
+            "description": "Typed attribute schema for an AttributedStateStore — provide either state or attributes, not both",
+            "additionalProperties": {
+                "type": "object",
+                "required": ["type", "default"],
+                "additionalProperties": false,
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "description": "The data type for this attribute",
+                        "enum": ["string", "number", "boolean", "array", "object"]
+                    },
+                    "default": {
+                        "description": "Default value for this attribute"
+                    }
+                }
+            }
+        }
+    }
+}

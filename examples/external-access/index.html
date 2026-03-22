@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>External Access — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 680px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+            color: #111;
+            line-height: 1.7;
+        }
+        h1 { margin-bottom: 0.25rem; font-size: 2rem; }
+        .meta { color: #888; margin-bottom: 2rem; }
+        p { margin-bottom: 1.2rem; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        button {
+            padding: 0.5rem 1.25rem;
+            background: #111;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        button:hover { background: #333; }
+        .note {
+            font-size: 0.85rem;
+            color: #888;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <notification-badge></notification-badge>
+        <button id="push-btn">Simulate push notification</button>
+    </div>
+
+    <hr>
+
+    <h1>External access</h1>
+    <p class="meta">Combining SWC with non-SWC code</p>
+
+    <p>The button above is not an SWC component — it's a plain HTML button wired up by
+    a regular <code>&lt;script&gt;</code> tag below. It simulates what a WebSocket handler,
+    analytics script, or third-party widget might do: update SWC state from outside the
+    component tree.</p>
+
+    <p>This works because <code>components/index.js</code> calls
+    <code>exposeGlobally({ getStore, getAllStores })</code>, which assigns those functions
+    to <code>window.SWC</code>. Any script on the page can then call
+    <code>window.SWC.getStore('notificationStore')</code> to read or update state — and
+    every subscribed component re-renders automatically.</p>
+
+    <p class="note">Open DevTools and run <code>window.SWC.getAllStores()</code> to inspect
+    all registered stores.</p>
+
+</body>
+
+<script>
+    document.getElementById('push-btn').addEventListener('click', function () {
+        var store = window.SWC.getStore('notificationStore');
+        var count = store.getState().count;
+        store.setState({ count: count + 1 });
+    });
+</script>
+
+</html>
