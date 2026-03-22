@@ -54,6 +54,7 @@ The split-file pattern also enables `component.json`, a small manifest that tell
 
 ```json
 {
+    "$schema": "https://raw.githubusercontent.com/Tumas2/swc/main/schemas/component.schema.json",
     "name": "my-counter",
     "version": "1.0.0",
     "stores": ["counterStore"]

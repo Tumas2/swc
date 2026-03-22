@@ -132,10 +132,17 @@ import meta from './stores/user-store.json' with { type: 'json' };
 const userStore = createStore(meta);
 ```
 
-A `store.json` file defines the store's id and default state. It is used by both `createStore()` on the JS side and `StoreRegistry` on the PHP side — one source of truth for both:
+A `store.json` file has two formats depending on how much structure you need: `state` for a plain store, `attributes` for a typed store. Use the `$schema` field to get inline validation and autocomplete in your editor.
+
+---
+
+### state — plain store
+
+Use `state` when your data is free-form. The object you provide becomes the initial state with no constraints on shape or type:
 
 ```json
 {
+    "$schema": "https://raw.githubusercontent.com/Tumas2/swc/main/schemas/store.schema.json",
     "id": "userStore",
     "state": {
         "name": "",
@@ -143,6 +150,36 @@ A `store.json` file defines the store's id and default state. It is used by both
     }
 }
 ```
+
+This creates a plain `StateStore`. You can store anything — strings, numbers, arrays, nested objects. `setState()` does a shallow merge and no types are checked.
+
+---
+
+### attributes — typed store
+
+Use `attributes` when you want type safety on individual fields. Each key maps to a `{ type, default }` pair. The initial state is derived from the `default` values:
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/Tumas2/swc/main/schemas/store.schema.json",
+    "id": "profileStore",
+    "attributes": {
+        "name":   { "type": "string",  "default": "" },
+        "age":    { "type": "number",  "default": 0 },
+        "active": { "type": "boolean", "default": true }
+    }
+}
+```
+
+Supported types: `"string"` `"number"` `"boolean"` `"array"` `"object"`
+
+This creates an `AttributedStateStore`. On every `setState()` call, each incoming value is checked against its declared type. A mismatch logs a `console.warn` — it never throws, so the app keeps running, but the mistake is visible during development:
+
+```
+SWC: setState() — "age" expected "number", got "string"
+```
+
+`attributes` is a good fit for stores that map closely to form fields or component props, where knowing the expected type upfront prevents subtle bugs.
 
 ---
 
