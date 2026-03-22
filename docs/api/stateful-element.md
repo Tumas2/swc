@@ -88,10 +88,39 @@ Override to return values derived from state. Called on every render. The return
 getRenderer(): (template: string, context: object) => string
 ```
 
-Returns the function used to process the template string before it is applied to the DOM. Override to plug in any template engine.
+Returns the function used to process the template string before it is applied to the DOM. Override to plug in any template engine. The returned function must match the signature `(template, context) => string`.
 
 - Default returns `_rawRenderer` — a passthrough that returns the template string unchanged.
-- See [Templates](../templates/README.md) for the built-in NanoRenderer option.
+- `NanoRenderStatefulElement` overrides this to return the built-in NanoRenderer.
+- See [Templates](../templates/README.md) for the full NanoRenderer setup.
+
+```javascript
+// Use NanoRenderer (the built-in option)
+import { NanoRenderStatefulElement } from 'swc';
+
+class MyComponent extends NanoRenderStatefulElement {
+    // getRenderer() already returns NanoRenderer — nothing to do
+}
+
+// Plug in Handlebars instead
+import { StatefulElement } from 'swc';
+
+class MyComponent extends StatefulElement {
+    getRenderer() {
+        return (template, context) => Handlebars.compile(template)(context);
+    }
+}
+
+// Share one renderer instance across all components (recommended for NanoRenderer
+// so compiled templates are cached once, not recompiled per-component)
+const nano = new NanoRenderer();
+
+class AppElement extends StatefulElement {
+    getRenderer() {
+        return nano.render.bind(nano);
+    }
+}
+```
 
 ---
 
@@ -103,30 +132,6 @@ render(): void
 
 Runs on every state change. Syncs `this.state`, passes the template and context through `getRenderer()`, then calls `html()` to update the DOM via `morph()`.
 
-Override when you need full control over the render cycle. Always call `this._syncState()` first so `this.state` is up to date, then call `this.html()` with your output.
-
-`render()` can be `async` — the most common reason to override it is fetching data when state changes:
-
-```javascript
-async render() {
-    this._syncState();
-
-    const { postId } = this.state.router.params;
-    if (!postId) {
-        this.html(['<p>No post selected.</p>']);
-        return;
-    }
-
-    const res  = await fetch(`/api/posts/${postId}`);
-    const post = await res.json();
-    this.html([`<h1>${post.title}</h1><p>${post.body}</p>`]);
-}
-```
-
-You can also use an early `return` to skip a render entirely — useful when the component should stay blank until a condition is met.
-
-- Always call `this._syncState()` at the top.
-- Always call `this.html([...])` (or return early) — not calling it leaves the DOM stale.
 - Called automatically by store subscriptions on state changes.
 - Called once at the end of `connectedCallback()`.
 
