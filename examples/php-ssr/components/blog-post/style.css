@@ -1,0 +1,28 @@
+:host {
+    display: block;
+}
+
+article {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    font-family: system-ui, sans-serif;
+    line-height: 1.8;
+    color: #111;
+}
+
+h1 {
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+}
+
+.meta {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+}
+
+p {
+    margin-bottom: 1.4rem;
+}

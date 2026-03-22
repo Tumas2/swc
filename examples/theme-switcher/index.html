@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theme Switcher — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 800px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        p { color: #555; margin-bottom: 2rem; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Theme Switcher</h1>
+    <p>One store update re-renders every subscribed component simultaneously.</p>
+
+    <theme-toggle></theme-toggle>
+
+    <div class="grid">
+        <app-card>
+            <span slot="title">Reactive state</span>
+            A store is a pub/sub container. Any component can subscribe and will re-render when
+            the store changes.
+        </app-card>
+
+        <app-card>
+            <span slot="title">Zero dependencies</span>
+            SWC has no runtime dependencies — not even on this theme switcher. It runs on
+            native browser APIs only.
+        </app-card>
+
+        <app-card>
+            <span slot="title">Scoped styles</span>
+            Shadow DOM means these card styles cannot leak out, and page-level styles cannot
+            bleed in. No class name collisions.
+        </app-card>
+
+        <app-card>
+            <span slot="title">Shared stores</span>
+            Import the same store in as many components as you need. They all stay in sync
+            with zero extra wiring.
+        </app-card>
+    </div>
+
+</body>
+</html>

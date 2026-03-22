@@ -31,6 +31,7 @@ class Component
     private string $tag_name;
     private string $fs_path;
     private string $web_path;
+    private string $version;
 
     /** @var array<string, string> Static template cache shared across all instances. */
     private static array $template_cache = [];
@@ -39,15 +40,18 @@ class Component
      * @param string $fs_path  Filesystem path to the component directory (contains markup.html).
      * @param string $web_path Web-accessible URL path for the component (used in <link href>).
      * @param string $tag_name Custom element tag name. Defaults to basename($fs_path).
+     * @param string $version  Optional version string appended as ?ver= to CSS and JS URLs.
      */
     public function __construct(
         string $fs_path,
         string $web_path,
         string $tag_name = '',
+        string $version  = '',
     ) {
         $this->fs_path  = rtrim($fs_path, '/');
         $this->web_path = rtrim($web_path, '/');
         $this->tag_name = $tag_name ?: basename($fs_path);
+        $this->version  = $version;
     }
 
     /**
@@ -67,7 +71,7 @@ class Component
 
         $css_link = sprintf(
             '<link rel="stylesheet" href="%s">',
-            htmlspecialchars($this->web_path . '/style.css', ENT_QUOTES, 'UTF-8')
+            htmlspecialchars($this->web_path . '/style.css' . $this->ver_suffix(), ENT_QUOTES, 'UTF-8')
         );
 
         $attr_str = '';
@@ -102,7 +106,21 @@ class Component
     {
         return sprintf(
             '<link rel="preload" href="%s" as="style">',
-            htmlspecialchars($this->web_path . '/style.css', ENT_QUOTES, 'UTF-8')
+            htmlspecialchars($this->web_path . '/style.css' . $this->ver_suffix(), ENT_QUOTES, 'UTF-8')
+        );
+    }
+
+    /**
+     * Returns a <script type="module"> tag for this component's JavaScript file.
+     * Place in <head> to register the custom element before the page body is parsed.
+     *
+     * @return string
+     */
+    public function script_tag(): string
+    {
+        return sprintf(
+            '<script type="module" src="%s"></script>',
+            htmlspecialchars($this->web_path . '/component.js' . $this->ver_suffix(), ENT_QUOTES, 'UTF-8')
         );
     }
 
@@ -119,6 +137,16 @@ class Component
     // -------------------------------------------------------------------------
     // Internal
     // -------------------------------------------------------------------------
+
+    /**
+     * Returns a ?ver= query string suffix when a version is set, otherwise empty string.
+     *
+     * @return string
+     */
+    private function ver_suffix(): string
+    {
+        return $this->version !== '' ? '?ver=' . urlencode($this->version) : '';
+    }
 
     /**
      * Loads markup.html from disk, caching the result for the lifetime of the process.

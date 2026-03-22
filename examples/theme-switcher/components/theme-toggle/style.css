@@ -1,0 +1,19 @@
+:host {
+    display: block;
+    margin-bottom: 2rem;
+}
+
+button {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #444;
+    transition: background 0.15s;
+}
+
+button:hover {
+    background: #f0f0f0;
+}

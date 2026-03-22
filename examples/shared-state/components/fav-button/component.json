@@ -1,0 +1,5 @@
+{
+    "name": "fav-button",
+    "version": "1.0.0",
+    "stores": ["articleStore"]
+}

@@ -1,88 +1,28 @@
 # SWC — Stateful Web Components
 
-A lightweight Vanilla JavaScript library for building reactive Web Components. No build step, no dependencies — just copy the files and go.
+SWC is a small JavaScript library for building reactive web components. No build tools, no dependencies, no framework lock-in — just modern browser APIs.
 
-## Install
+## Why does this exist?
 
-**Option A — GitHub release (recommended)**
+Most UI libraries come with a cost: a build pipeline, a runtime to ship, a framework to commit to, and a growing list of dependencies to maintain. SWC started as an experiment to see how far modern JavaScript could go without any of that.
 
-Download the latest release from [GitHub Releases](https://github.com/your-org/swc/releases) and include the pre-built files:
+**Three goals drove it:**
 
-```html
-<script type="module" src="./swc.min.js"></script>
-<!-- optional router add-on -->
-<script type="module" src="./swc-router.min.js"></script>
-```
+- **No build tools.** Browsers understand ES modules natively. There is no reason a library should require a bundler to run.
+- **No dependencies.** Every dependency is a maintenance burden and a potential security surface. SWC has zero — on both the JS and PHP sides.
+- **Small but expandable.** The core is a few hundred lines. You only add what you need — the template renderer, the router, the SSR package are all opt-in.
 
-**Option B — built from source**
+The result is a library that feels like writing plain JavaScript, because it mostly is. You get reactivity, scoped styles, and DOM diffing — all built on web standards that will still work ten years from now.
 
-Use the pre-built files from `dist/` if you've cloned the repo:
+## What it does
 
-```html
-<script type="module" src="./dist/swc.min.js"></script>
-<script type="module" src="./dist/swc-router.min.js"></script>
-```
-
-**Option C — uncompiled source**
-
-Copy `src/js/` into your project and import directly. No bundler required.
-
-| File | Required | Description |
-| :--- | :--- | :--- |
-| `StatefulElement.js` | Yes | Base component class |
-| `store.js` | Yes | State store (pub/sub) |
-| `dom-morph.js` | Yes | In-place DOM diffing engine |
-| `html-loader.js` | Yes | External template loader |
-| `NanoRenderer.js` | Optional | `{{ mustache }}` template engine |
-| `router/` | Optional | Client-side routing components |
-
-```javascript
-import { StatefulElement, StateStore, createStore } from './src/js/index.js';
-```
-
-## Quick Start
-
-```javascript
-import { StatefulElement } from './src/js/StatefulElement.js';
-import { StateStore } from './src/js/store.js';
-
-const counterStore = new StateStore({ count: 0 });
-
-class MyCounter extends StatefulElement {
-    getStores() {
-        return { counter: counterStore };
-    }
-
-    view() {
-        return `
-            <button onclick="decrement">−</button>
-            <span>${this.state.counter.count}</span>
-            <button onclick="increment">+</button>
-        `;
-    }
-
-    increment() { counterStore.setState({ count: this.state.counter.count + 1 }); }
-    decrement() { counterStore.setState({ count: this.state.counter.count - 1 }); }
-}
-
-customElements.define('my-counter', MyCounter);
-```
-
-```html
-<my-counter></my-counter>
-```
-
-State changes automatically re-render the component — no manual DOM manipulation needed.
+- Reactive components built on the [Web Components](https://developer.mozilla.org/en-US/docs/Web/API/Web_components) standard
+- A simple pub/sub state store that re-renders components automatically
+- In-place DOM diffing so updates are efficient without a virtual DOM
+- An optional `{{ mustache }}` template renderer
+- An optional client-side router
+- An optional PHP package for server-side rendering
 
 ## Documentation
 
-| Topic | File |
-| :--- | :--- |
-| Component API, stores, events | [docs/core.md](docs/core.md) |
-| `{{ mustache }}` template syntax | [docs/nano-renderer.md](docs/nano-renderer.md) |
-| Client-side routing | [docs/router.md](docs/router.md) |
-| PHP server-side rendering | [docs/php-ssr.md](docs/php-ssr.md) |
-
-## PHP SSR (optional)
-
-`src/php/` is a standalone Composer package for server-side rendering of SWC components as [Declarative Shadow DOM](https://developer.chrome.com/docs/css-ui/declarative-shadow-dom). It is entirely optional — the JS library works without it. See [docs/php-ssr.md](docs/php-ssr.md).
+Read the [docs](docs/README.md) to get started.

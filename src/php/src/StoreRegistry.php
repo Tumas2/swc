@@ -20,7 +20,7 @@ namespace SWC;
  */
 class StoreRegistry
 {
-    /** @var array<string, array{meta: array, state: array}> Keyed by store name. */
+    /** @var array<string, array{meta: array, state: array}> Keyed by store id. */
     private array $stores = [];
 
     private StateInjector $injector;
@@ -38,13 +38,13 @@ class StoreRegistry
      * Merges additional data into a store's state (server-side overrides).
      * Creates the entry if it does not exist yet.
      *
-     * @param string $key  Store name matching the "name" field in store.json.
+     * @param string $key  Store id matching the "id" field in store.json.
      * @param array  $data Partial state to merge on top of the store's defaults.
      */
     public function merge(string $key, array $data): void
     {
         if (!isset($this->stores[$key])) {
-            $this->stores[$key] = ['meta' => ['name' => $key], 'state' => []];
+            $this->stores[$key] = ['meta' => ['id' => $key], 'state' => []];
         }
         $this->stores[$key]['state'] = array_merge($this->stores[$key]['state'], $data);
         $this->injector->set($key, $this->stores[$key]['state']);
@@ -102,7 +102,10 @@ class StoreRegistry
     // -------------------------------------------------------------------------
 
     /**
-     * Scans $fs_path for *.json files and registers any that have a "name" field.
+     * Scans $fs_path for *.json files and registers any that have an "id" field.
+     * Supports both "state" (plain object) and "attributes" (typed schema) manifests.
+     * When "attributes" is present, initial state is derived from each attribute's
+     * "default" value.
      *
      * @param string $fs_path
      */
@@ -111,18 +114,23 @@ class StoreRegistry
         $pattern = rtrim($fs_path, '/') . '/*.json';
         foreach (glob($pattern) ?: [] as $file) {
             $meta = json_decode(file_get_contents($file), true);
-            if (!is_array($meta) || !isset($meta['name'])) {
+            if (!is_array($meta) || !isset($meta['id'])) {
                 continue;
             }
 
-            $name  = $meta['name'];
-            $state = $meta['state'] ?? [];
+            $id = $meta['id'];
 
-            $this->stores[$name] = [
+            if (isset($meta['attributes']) && is_array($meta['attributes'])) {
+                $state = array_map(fn($def) => $def['default'] ?? null, $meta['attributes']);
+            } else {
+                $state = $meta['state'] ?? [];
+            }
+
+            $this->stores[$id] = [
                 'meta'  => $meta,
                 'state' => $state,
             ];
-            $this->injector->set($name, $state);
+            $this->injector->set($id, $state);
         }
     }
 }

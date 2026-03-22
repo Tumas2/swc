@@ -1,6 +1,5 @@
 {
-    "name": "skillsStore",
-    "title": "Skills Store",
+    "id": "skillsStore",
     "state": {
         "query": "",
         "skills": [

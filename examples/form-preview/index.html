@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Preview — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            margin: 3rem auto;
+            max-width: 900px;
+            padding: 0 1.5rem;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        p { color: #555; margin-bottom: 2.5rem; line-height: 1.6; }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            align-items: start;
+        }
+        h2 {
+            font-size: 1rem;
+            color: #888;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        @media (max-width: 600px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Form Preview</h1>
+    <p>Two components, one store. The form writes to <code>profileStore</code> on every
+    keystroke. The preview reads the same store and re-renders instantly.</p>
+
+    <div class="layout">
+        <div>
+            <h2>Edit</h2>
+            <profile-form></profile-form>
+        </div>
+        <div>
+            <h2>Preview</h2>
+            <profile-preview></profile-preview>
+        </div>
+    </div>
+
+</body>
+</html>

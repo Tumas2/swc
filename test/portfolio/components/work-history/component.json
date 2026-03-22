@@ -1,6 +1,5 @@
 {
     "name": "work-history",
     "version": "1.0.0",
-    "title": "Work History",
     "stores": ["workStore"]
 }

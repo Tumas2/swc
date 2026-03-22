@@ -1,5 +1,6 @@
 import { StatefulElement } from '../../StatefulElement.js';
 import { loadHTML } from '../../html-loader.js';
+import { _sharedNano } from '../../NanoRenderer.js';
 
 export class RouterSwitch extends StatefulElement {
     constructor() {
@@ -96,3 +97,16 @@ export class RouterSwitch extends StatefulElement {
     }
 }
 
+/**
+ * RouterSwitch with NanoRenderer as the default renderer.
+ * Use this when you want {{ mustache }} expressions in src= page files
+ * (e.g. {{ router.params.id }}, {{ router.pathname }}).
+ * Override getRenderer() to swap in a different renderer (e.g. Handlebars).
+ * @extends RouterSwitch
+ */
+export class NanoRenderRouterSwitch extends RouterSwitch {
+    /** @returns {function(string, object): string} */
+    getRenderer() {
+        return _sharedNano.render.bind(_sharedNano);
+    }
+}

@@ -1,0 +1,9 @@
+<article>
+    <header>
+        <h1>{{ post.title }}</h1>
+        <p class="meta">{{ post.date }} &middot; {{ post.readTime }} &middot; <strong>{{ post.author }}</strong></p>
+    </header>
+    {{#each post.body}}
+        <p>{{ this }}</p>
+    {{/each}}
+</article>

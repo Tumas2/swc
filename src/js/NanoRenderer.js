@@ -263,7 +263,7 @@ export class NanoRenderer {
 // Shared singleton — all NanoRenderStatefulElement instances use one cache,
 // so each unique template string is compiled exactly once across the page.
 // ---------------------------------------------------------------------------
-const _sharedNano = new NanoRenderer();
+export const _sharedNano = new NanoRenderer();
 
 export class NanoRenderStatefulElement extends StatefulElement {
     getRenderer() {

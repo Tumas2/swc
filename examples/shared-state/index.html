@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared State — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 680px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+            color: #111;
+            line-height: 1.7;
+        }
+        h1 { margin-bottom: 0.25rem; font-size: 2rem; }
+        .meta { color: #888; margin-bottom: 2rem; }
+        p { margin-bottom: 1.2rem; }
+        hr { border: none; border-top: 1px solid #eee; margin: 2rem 0; }
+    </style>
+</head>
+<body>
+
+    <!-- Same component, top of the article -->
+    <fav-button></fav-button>
+
+    <hr>
+
+    <article>
+        <h1>The quiet power of reactive state</h1>
+        <p class="meta">March 2026 &middot; 4 min read</p>
+
+        <p>Both of these buttons share the same store. Click either one and the other
+        updates instantly — no events, no callbacks, no prop drilling. The store is the
+        single source of truth and every subscribed component re-renders when it changes.</p>
+
+        <p>This is what makes reactive state genuinely useful: you don't need to know
+        which components exist or where they live in the DOM. You update the data, and
+        the UI takes care of itself.</p>
+
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque habitant
+        morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum
+        tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.</p>
+    </article>
+
+    <hr>
+
+    <!-- Same component, bottom of the article -->
+    <fav-button></fav-button>
+
+</body>
+</html>

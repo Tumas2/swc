@@ -1,0 +1,18 @@
+<style>
+    .page { padding: 3rem 1.5rem; max-width: 680px; margin: 0 auto; }
+    h1   { font-size: 2rem; margin-bottom: 0.5rem; }
+    .id  { color: #1d4ed8; font-weight: 600; }
+    p    { color: #444; line-height: 1.7; }
+    .back { display: inline-block; margin-bottom: 2rem; color: #1d4ed8; font-size: 0.9rem; }
+    code { background: #f3f4f6; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+</style>
+
+<div class="page">
+    <router-link to="/posts" class="back">← Back to posts</router-link>
+    <h1>Post <span class="id">#{{ router.params.id }}</span></h1>
+    <p>The route matched <code>/posts/:id</code> and extracted <code>{{ router.params.id }}</code>
+    from the URL. Route params are available in the template context under
+    <code>router.params.*</code> — no JavaScript needed to read them.</p>
+    <p>In a real app you would use the ID to fetch content from an API in a component's
+    <code>onMount()</code>, or pass it to a store.</p>
+</div>

@@ -1,0 +1,10 @@
+{
+    "id": "post",
+    "state": {
+        "title": "",
+        "author": "",
+        "date": "",
+        "readTime": "",
+        "body": []
+    }
+}

@@ -14,6 +14,6 @@ Server-side rendering for [SWC (Stateful Web Components)](../../../../README.md)
 | `StateInjector` | Low-level: collects state and emits `window.__SWC_INITIAL_STATE__` |
 | `NanoRenderer` | PHP port of the JS NanoRenderer — processes `markup.html` templates |
 
-## Full Documentation
+## Documentation
 
-See [docs/php-ssr.md](../../../docs/php-ssr.md) for usage, examples, and API reference.
+See [docs/ssr/php/](../../../docs/ssr/php/README.md) for full usage, examples, and API reference.

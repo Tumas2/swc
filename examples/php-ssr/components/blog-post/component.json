@@ -1,0 +1,5 @@
+{
+    "name": "blog-post",
+    "version": "1.0.0",
+    "stores": ["post"]
+}

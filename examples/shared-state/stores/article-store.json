@@ -1,0 +1,7 @@
+{
+    "id": "articleStore",
+    "state": {
+        "liked": false,
+        "likeCount": 42
+    }
+}

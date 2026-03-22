@@ -1,0 +1,42 @@
+:host {
+    display: block;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+input, textarea {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    font-family: inherit;
+    color: #111;
+    transition: border-color 0.15s;
+    background: #fff;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #1d4ed8;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}

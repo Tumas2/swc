@@ -1,0 +1,16 @@
+<ul>
+    {{#each team.members}}
+    <li class="{{#unless this.active}}inactive{{/unless}}">
+        <div class="avatar">{{ this.initial }}</div>
+        <div>
+            <div class="name">{{ this.name }}</div>
+            <div class="role">{{ this.role }}</div>
+        </div>
+        {{#if this.active}}
+            <span class="badge">Active</span>
+        {{else}}
+            <span class="badge inactive">Away</span>
+        {{/if}}
+    </li>
+    {{/each}}
+</ul>

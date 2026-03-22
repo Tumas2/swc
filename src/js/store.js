@@ -68,24 +68,86 @@ export class StateStore {
 }
 
 /**
- * Creates a StateStore that is SSR-aware.
+ * Opt-in typed store. Instead of a plain state object, accepts an attributes
+ * schema where each key maps to `{ type, default }`. Initial state is derived
+ * from the `default` values. On every `setState()` call, each incoming value
+ * is checked against its declared type — mismatches produce a console.warn
+ * (never a throw) so development mistakes are visible without breaking the app.
  *
- * Accepts either a store.json manifest object or a plain (key, defaultState) pair.
- * When PHP has injected window.__SWC_INITIAL_STATE__, the matching key is used as the
- * starting state. In pure CSR (no PHP), the optional chaining means this is safe and
- * the store falls back to defaultState normally.
- * resetState() always goes back to the true JS defaults, never the SSR state.
+ * Supported types: "string" | "number" | "boolean" | "array" | "object"
  *
- * @param {string|{name: string, state: object}} keyOrMeta - Store key string, or a store.json manifest.
+ * @extends StateStore
+ */
+export class AttributedStateStore extends StateStore {
+    /**
+     * @param {Record<string, {type: string, default: *}>} attributes
+     */
+    constructor(attributes) {
+        const initialState = Object.fromEntries(
+            Object.entries(attributes).map(([key, def]) => [key, def.default ?? null])
+        );
+        super(initialState);
+        /** @private */
+        this._attributes = attributes;
+    }
+
+    /**
+     * Updates state with type validation. Logs a warning for type mismatches.
+     * @param {object} newState
+     */
+    setState(newState) {
+        for (const [key, value] of Object.entries(newState)) {
+            const def = this._attributes[key];
+            if (def && !this._checkType(value, def.type)) {
+                console.warn(`SWC: setState() — "${key}" expected "${def.type}", got "${typeof value}"`);
+            }
+        }
+        super.setState(newState);
+    }
+
+    /**
+     * @private
+     * @param {*} value
+     * @param {string} type
+     * @returns {boolean}
+     */
+    _checkType(value, type) {
+        if (type === 'array')  return Array.isArray(value);
+        if (type === 'object') return typeof value === 'object' && !Array.isArray(value) && value !== null;
+        return typeof value === type;
+    }
+}
+
+/**
+ * Creates a StateStore (or AttributedStateStore) that is SSR-aware.
+ *
+ * Accepts a store manifest object or a plain (key, defaultState) pair.
+ * When the manifest has an `attributes` key, an AttributedStateStore is
+ * returned — initial state is derived from each attribute's `default` value.
+ * When the manifest has a `state` key, a plain StateStore is returned.
+ * When PHP has injected window.__SWC_INITIAL_STATE__, the matching key is
+ * used as the starting state. resetState() always goes back to the JS defaults.
+ *
+ * @param {string|{id: string, state: object}|{id: string, attributes: object}} keyOrMeta
+ *   Store id string, a store.json manifest with a `state` key, or a store.json
+ *   manifest with an `attributes` key.
  * @param {object} [defaultState] - Default state when passing a plain key. Ignored when manifest is passed.
- * @returns {StateStore}
+ * @returns {StateStore|AttributedStateStore}
  */
 export function createStore(keyOrMeta, defaultState) {
-    const key   = typeof keyOrMeta === 'string' ? keyOrMeta : keyOrMeta.name;
-    const state = typeof keyOrMeta === 'string' ? defaultState : (defaultState ?? keyOrMeta.state);
+    const isMeta = typeof keyOrMeta === 'object';
+    const key    = isMeta ? keyOrMeta.id : keyOrMeta;
 
+    if (isMeta && keyOrMeta.attributes) {
+        const store       = new AttributedStateStore(keyOrMeta.attributes);
+        const serverState = window.__SWC_INITIAL_STATE__?.[key];
+        if (serverState) store._state = { ...store._state, ...serverState };
+        return store;
+    }
+
+    const state       = isMeta ? (defaultState ?? keyOrMeta.state) : defaultState;
     const serverState = window.__SWC_INITIAL_STATE__?.[key];
-    const store = new StateStore(serverState ?? state);
+    const store       = new StateStore(serverState ?? state);
     store._initialState = { ...state };
     return store;
 }

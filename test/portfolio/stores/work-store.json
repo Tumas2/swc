@@ -1,6 +1,5 @@
 {
-    "name": "workStore",
-    "title": "Work History Store",
+    "id": "workStore",
     "state": {
         "companies": [
             {

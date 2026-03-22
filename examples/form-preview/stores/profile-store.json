@@ -1,0 +1,8 @@
+{
+    "id": "profileStore",
+    "attributes": {
+        "name":   { "type": "string", "default": "" },
+        "handle": { "type": "string", "default": "" },
+        "bio":    { "type": "string", "default": "" }
+    }
+}

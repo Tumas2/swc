@@ -16,6 +16,7 @@ namespace SWC;
  *   );
  *
  *   echo $components->preload_tags();           // <link rel="preload"> for each style.css
+ *   echo $components->script_tags();           // <script type="module"> for each component.js
  *   echo $components->render('work-history');  // renders with state from StoreRegistry
  *   echo $components->render('site-nav');      // renders with no state (static)
  *
@@ -84,6 +85,21 @@ class ComponentRegistry
     }
 
     /**
+     * Returns a <script type="module"> tag for every discovered component's JavaScript file.
+     * Place in <head> to register all custom elements before the page body is parsed.
+     *
+     * @return string
+     */
+    public function script_tags(): string
+    {
+        $out = '';
+        foreach ($this->components as $component) {
+            $out .= $component->script_tag() . "\n";
+        }
+        return $out;
+    }
+
+    /**
      * Returns the raw Component object for a tag name, or null if not found.
      * Useful for rendering with custom data outside the StoreRegistry.
      *
@@ -122,6 +138,7 @@ class ComponentRegistry
                 fs_path:  $dir,
                 web_path: $web_base . '/' . $dir_name,
                 tag_name: $name,
+                version:  $meta['version'] ?? '',
             );
         }
     }
