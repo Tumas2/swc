@@ -1,5 +1,6 @@
 import { loadHTML } from './html-loader.js';
 import { morph } from './dom-morph.js';
+import { getStore } from './store.js';
 
 /**
  * A state-driven base class for creating powerful, reactive Web Components.
@@ -53,7 +54,7 @@ export class StatefulElement extends HTMLElement {
             this.template = this.shadowRoot.innerHTML;
         }
 
-        this._stores = this.getStores();
+        this._stores = this._resolveStores();
         if (typeof this._stores !== 'object' || this._stores === null) {
             throw new Error('getStores() must be implemented and return an object of store instances.');
         }
@@ -99,11 +100,22 @@ export class StatefulElement extends HTMLElement {
     /**
      * @abstract
      * Subclasses can implement this to provide a map of store instances.
-     * Defaults to an empty object for components without state.
+     * Used as a fallback when getManifest() returns no stores.
      * @returns {Object.<string, {subscribe: Function, getState: Function, setState: Function}>}
      */
     getStores() {
-        return {}; // Default to no stores
+        return {};
+    }
+
+    /**
+     * @abstract
+     * Override to provide the component's JSON manifest for auto-wiring stores.
+     * When the manifest has a `stores` array, those stores are resolved from the
+     * registry automatically and take precedence over getStores().
+     * @returns {object|null}
+     */
+    getManifest() {
+        return null;
     }
 
     /**
@@ -176,6 +188,43 @@ export class StatefulElement extends HTMLElement {
     }
 
     // --- Internal Helper Methods ---
+
+    /**
+     * @private
+     * Resolves store instances from getManifest() or falls back to getStores().
+     * Manifest stores take precedence — they keep JS and PHP SSR in sync.
+     * Warns if both sources define stores so the developer can remove the redundancy.
+     * @returns {object}
+     */
+    _resolveStores() {
+        const manual = this.getStores();
+        const manifest = this.getManifest();
+        const manifestStores = manifest?.stores ?? [];
+
+        const hasManual = Object.keys(manual).length > 0;
+        const hasManifest = manifestStores.length > 0;
+
+        if (hasManual && hasManifest) {
+            console.warn(`SWC: <${this.tagName.toLowerCase()}> defines stores in both getManifest() and getStores(). Remove one to avoid duplicate subscriptions. Using getManifest().`);
+        }
+
+        if (hasManifest) {
+            const stores = {};
+            for (const id of manifestStores) {
+                const store = getStore(id);
+                if (!store) {
+                    console.warn(`SWC: <${this.tagName.toLowerCase()}> — auto-wiring failed for "${id}". Make sure createStore("${id}") is called before this component connects.`);
+                    continue;
+                }
+                stores[id] = store;
+            }
+            return stores;
+        }
+
+        if (hasManual) return manual;
+
+        return {};
+    }
 
     /**
      * @private

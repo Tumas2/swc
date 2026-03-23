@@ -34,23 +34,27 @@ The `<slot>` element passes children through — this is a standard Shadow DOM f
 
 There are no rules about where files live. A simple component can be a single file. As components grow — or when you want to reuse them with the [PHP SSR](../ssr/php/README.md) package — splitting into separate files keeps things manageable.
 
-**Single file** — good for small components or prototyping:
+### Single file
+Good for small components or prototyping:
 
 ```
 components/
 └── my-counter.js
 ```
 
-**Split-file pattern** — recommended for anything you'll maintain or share:
+### Split-file pattern
+Recommended for anything you'll maintain or share:
 
 ```
 components/my-counter/
 ├── component.js    — class definition and customElements.define()
+├── component.json  — manifest (name, version, stores)
 ├── markup.html     — HTML template (used by NanoRenderer and PHP SSR)
 └── style.css       — scoped styles for this component
 ```
 
-The split-file pattern also enables `component.json`, a small manifest that tells `ComponentRegistry` (PHP SSR) which stores a component needs:
+### component.json
+`component.json` holds the element name, version, and the list of stores the component subscribes to. The manifest is read by `ComponentRegistry` on the PHP SSR side for auto-discovery:
 
 ```json
 {
@@ -61,13 +65,39 @@ The split-file pattern also enables `component.json`, a small manifest that tell
 }
 ```
 
-Import it and pass the `name` to `customElements.define()`:
+The name can also be imported and passed to `customElements.define()` to avoid hardcoding it in two places:
 
 ```javascript
 import meta from './component.json' with { type: 'json' };
 
 customElements.define(meta.name, MyCounter);
 ```
+
+#### Auto-wiring stores with getManifest()
+
+If you return the manifest from `getManifest()`, any stores listed in `component.json` are resolved from the store registry automatically — no `getStores()` needed:
+
+```javascript
+import { NanoRenderStatefulElement } from '../../swc.js';
+import meta from './component.json' with { type: 'json' };
+import styles from './style.css' with { type: 'css' };
+
+export class MyCounter extends NanoRenderStatefulElement {
+    getManifest() { return meta; }
+    getStyles()   { return [styles]; }
+    getTemplatePath() {
+        return new URL('./markup.html', import.meta.url).pathname;
+    }
+}
+
+customElements.define(meta.name, MyCounter);
+```
+
+Each store id becomes a key in `this.state` directly — `"counterStore"` becomes `this.state.counterStore`. This keeps your JS and PHP SSR in sync: both read from the same manifest.
+
+If you implement both `getManifest()` (with stores) and `getStores()`, the manifest takes precedence and a warning is logged to remind you to remove the redundant one.
+
+If you need a store under a custom key (e.g. `this.state.counter` instead of `this.state.counterStore`), use `getStores()` directly instead.
 
 ---
 
