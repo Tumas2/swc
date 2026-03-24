@@ -25,7 +25,7 @@ export class ProfileForm extends NanoRenderStatefulElement {
      *
      * @param {Event} event
      */
-    updateField(event) {
+    $updateField(event) {
         const field = event.target.dataset.field;
         if (field) {
             profileStore.setState({ [field]: event.target.value });

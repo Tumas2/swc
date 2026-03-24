@@ -43,7 +43,7 @@ export class SkillsGrid extends NanoRenderStatefulElement {
      * Updates the search query in the store.
      * @param {InputEvent} e
      */
-    handleInput(e) {
+    $handleInput(e) {
         skillsStore.setState({ query: e.target.value });
     }
 

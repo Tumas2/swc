@@ -21,7 +21,7 @@ export class ThemeToggle extends NanoRenderStatefulElement {
     /**
      * Flips the theme between 'light' and 'dark'.
      */
-    toggle() {
+    $toggle() {
         const next = this.state.theme.theme === 'light' ? 'dark' : 'light';
         themeStore.setState({ theme: next });
     }

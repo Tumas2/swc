@@ -71,17 +71,17 @@ class MyCounter extends StatefulElement {
 
     view() {
         return `
-            <button onclick="decrement">−</button>
+            <button onclick="$decrement">−</button>
             <span>${this.state.counter.count}</span>
-            <button onclick="increment">+</button>
+            <button onclick="$increment">+</button>
         `;
     }
 
-    increment() {
+    $increment() {
         counterStore.setState({ count: this.state.counter.count + 1 });
     }
 
-    decrement() {
+    $decrement() {
         counterStore.setState({ count: this.state.counter.count - 1 });
     }
 }

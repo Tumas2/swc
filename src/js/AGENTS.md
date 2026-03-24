@@ -15,15 +15,17 @@ SWC (Stateful Web Components) is a pure Vanilla JavaScript library for building 
 
 ### 2. State Management (`StateStore`)
 - **Pattern**: Pub/Sub architecture.
-- **Integration**: Components define dependent stores in `getStores()`.
+- **Integration**: Components wire stores via `getManifest()` (preferred — auto-wires from `component.json`) or `getStores()` (explicit, custom keys). If both return stores, manifest wins and a `console.warn` is logged.
 - **Reactivity**: `StatefulElement` automatically subscribes to these stores and triggers `render()` on state changes.
 - **Methods**: `getState()`, `setState()`, `resetState()`, `subscribe()`, `unsubscribe()`.
+- **Typed stores**: `AttributedStateStore` (created when manifest uses `attributes` instead of `state`) validates types on `setState()` and warns on mismatch.
 
 ### 3. DOM Morphing & Events
 - **Morphing**: Updates DOM nodes in place to preserve state (focus, selection).
 - **Event Binding**:
-    - **Convention**: Use `on*` attributes in your HTML templates (e.g., `onclick="handleClick"`).
-    - **Magic**: `StatefulElement` automatically converts these to `data-swc-event-*` and binds them to the component instance's methods (e.g., `this.handleClick`).
+    - **Convention**: Use `on*` attributes in your HTML templates (e.g., `onclick="$handleClick"`). Handler method names **must** start with `$`.
+    - **Magic**: `StatefulElement` automatically converts these to `data-swc-event-*` and binds them to the component instance's methods (e.g., `this.$handleClick`).
+    - **Namespace isolation**: The `$` prefix prevents user handlers from accidentally colliding with SWC lifecycle methods. Methods without `$` are ignored and produce a `console.warn`.
     - **Stability**: Event listeners are managed and cleaned up automatically.
 
 ## Utilities (Optional)
@@ -67,6 +69,7 @@ When building components, follow the "Folder-per-Component" pattern to ensure mo
 ### Component Structure
 Each component should live in its own directory (e.g., `components/user-greeting/`) containing:
 - `component.js`: Class definition and logic.
+- `component.json`: Manifest (`name`, `version`, `stores[]`).
 - `markup.html`: The HTML template (if not using inline `view()`).
 - `style.css`: Component-specific styles.
 
@@ -76,6 +79,7 @@ Each component should live in its own directory (e.g., `components/user-greeting
 ```
 test/php-routing/components/user-greeting/
 ├── component.js
+├── component.json
 ├── markup.html
 └── style.css
 ```
@@ -83,44 +87,44 @@ test/php-routing/components/user-greeting/
 **Implementation Pattern (`component.js`):**
 ```javascript
 import { NanoRenderStatefulElement } from 'swc';
-import { userStore } from '../../stores/userStore.js';
-import componentStyle from './style.css' with { type: 'css' }; // Import CSS module
+import meta from './component.json' with { type: 'json' };
+import componentStyle from './style.css' with { type: 'css' };
 
 class UserGreeting extends NanoRenderStatefulElement {
 
-    // 1. encapsulated styles
+    // 1. Provide manifest — auto-wires stores listed in component.json
+    getManifest() {
+        return meta;
+    }
+
+    // 2. Encapsulated styles
     getStyles() {
         return [componentStyle];
     }
 
-    // 2. External template path (resolved relative to current file)
+    // 3. External template path (resolved relative to current file)
     getTemplatePath() {
         return new URL('markup.html', import.meta.url).pathname;
     }
 
-    // 3. Initial local state/data
+    // 4. Derived values available in the template alongside state
     computed() {
         return {
             person: { name: "Alex", isAdmin: true }
         };
     }
-
-    // 4. Connect to global stores
-    getStores() {
-        return {
-            user: userStore,
-        };
-    }
 }
 
-customElements.define('user-greeting', UserGreeting);
+customElements.define(meta.name, UserGreeting);
 ```
+
+Use `getStores()` instead of `getManifest()` only when you need stores under custom keys (e.g. `{ user: userStore }` → `this.state.user` instead of `this.state.userStore`).
 
 ### Key Principles
 1.  **Separation**: Keep logic, view, and style in separate files for maintainability.
 2.  **CSS Modules**: Use `import ... with { type: 'css' }` for native CSS module support.
 3.  **Relative Paths**: Use `import.meta.url` to resolve paths for external assets like templates.
-4.  **Store Connection**: explicit dependency injection via `getStores()`.
+4.  **Store connection**: prefer `getManifest()` to auto-wire from `component.json`; use `getStores()` when custom state keys are needed.
 
 ## Server-Side Rendering (SSR)
 

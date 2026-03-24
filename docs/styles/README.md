@@ -20,7 +20,7 @@ class MyButton extends StatefulElement {
     }
 
     view() {
-        return `<button onclick="handleClick"><slot></slot></button>`;
+        return `<button onclick="$handleClick"><slot></slot></button>`;
     }
 }
 ```

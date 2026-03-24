@@ -86,10 +86,10 @@ export class TaskList extends NanoRenderStatefulElement {
                     {{/if}}
                 </div>
                 <span class="badge badge-{{this.priority}}">{{this.priority}}</span>
-                <button class="btn-done" onclick="toggleDone" data-id="{{this.id}}">
+                <button class="btn-done" onclick="$toggleDone" data-id="{{this.id}}">
                     {{#if this.done}}✓{{else}}○{{/if}}
                 </button>
-                <button class="btn-remove" onclick="removeTask" data-id="{{this.id}}">✕</button>
+                <button class="btn-remove" onclick="$removeTask" data-id="{{this.id}}">✕</button>
             </div>
             {{else}}
             <div class="empty-state">{{emptyMessage}}</div>
@@ -117,7 +117,7 @@ export class TaskList extends NanoRenderStatefulElement {
      * Toggles the done state of a task.
      * @param {Event} e
      */
-    toggleDone(e) {
+    $toggleDone(e) {
         const id = parseInt(e.currentTarget.dataset.id, 10);
         const tasks = taskStore.getState().tasks.map(t =>
             t.id === id ? { ...t, done: !t.done } : t
@@ -129,7 +129,7 @@ export class TaskList extends NanoRenderStatefulElement {
      * Removes a task from the list.
      * @param {Event} e
      */
-    removeTask(e) {
+    $removeTask(e) {
         const id = parseInt(e.currentTarget.dataset.id, 10);
         const tasks = taskStore.getState().tasks.filter(t => t.id !== id);
         taskStore.setState({ tasks });

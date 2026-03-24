@@ -128,7 +128,7 @@ export class TaskStats extends NanoRenderStatefulElement {
 
             <div class="filter-info">Filter: <span>{{taskStore.filter}}</span></div>
 
-            <button class="btn-reset" onclick="resetAll">Reset All Tasks</button>
+            <button class="btn-reset" onclick="$resetAll">Reset All Tasks</button>
         `;
     }
 
@@ -147,7 +147,7 @@ export class TaskStats extends NanoRenderStatefulElement {
     }
 
     /** Resets taskStore to its initial state. */
-    resetAll() {
+    $resetAll() {
         taskStore.resetState();
     }
 }

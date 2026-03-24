@@ -80,12 +80,12 @@ export class TaskHeader extends NanoRenderStatefulElement {
 
                 <span class="filter-label">Filter:</span>
                 <div class="filter-btns">
-                    <button class="btn-filter {{#if filterAll}}active{{/if}}"    onclick="setAll">All</button>
-                    <button class="btn-filter {{#if filterActive}}active{{/if}}" onclick="setActive">Active</button>
-                    <button class="btn-filter {{#if filterDone}}active{{/if}}"   onclick="setDone">Done</button>
+                    <button class="btn-filter {{#if filterAll}}active{{/if}}"    onclick="$setAll">All</button>
+                    <button class="btn-filter {{#if filterActive}}active{{/if}}" onclick="$setActive">Active</button>
+                    <button class="btn-filter {{#if filterDone}}active{{/if}}"   onclick="$setDone">Done</button>
                 </div>
 
-                <button class="btn-sidebar" onclick="toggleSidebar">
+                <button class="btn-sidebar" onclick="$toggleSidebar">
                     {{#if uiStore.sidebarOpen}}Hide Stats{{else}}Show Stats{{/if}}
                 </button>
             </div>
@@ -93,22 +93,22 @@ export class TaskHeader extends NanoRenderStatefulElement {
     }
 
     /** Sets filter to 'all'. */
-    setAll() {
+    $setAll() {
         taskStore.setState({ filter: 'all' });
     }
 
     /** Sets filter to 'active'. */
-    setActive() {
+    $setActive() {
         taskStore.setState({ filter: 'active' });
     }
 
     /** Sets filter to 'done'. */
-    setDone() {
+    $setDone() {
         taskStore.setState({ filter: 'done' });
     }
 
     /** Toggles the sidebar panel visibility. */
-    toggleSidebar() {
+    $toggleSidebar() {
         uiStore.setState({ sidebarOpen: !uiStore.getState().sidebarOpen });
     }
 }

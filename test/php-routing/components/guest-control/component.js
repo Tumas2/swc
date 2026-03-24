@@ -18,7 +18,7 @@ class GuestControl extends NanoRenderStatefulElement {
         return { user: userStore };
     }
 
-    onchange(e) {
+    $onchange(e) {
         userStore.setState({ name: e.target.value });
     }
 }

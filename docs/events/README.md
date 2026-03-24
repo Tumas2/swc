@@ -1,26 +1,34 @@
 # Events
 
-SWC handles event binding automatically. Write `onclick="methodName"` in your template and SWC wires it to the matching method on your class. No `addEventListener`, no `.bind(this)`, no cleanup needed.
+SWC handles event binding automatically. Write `onclick="$methodName"` in your template and SWC wires it to the matching method on your class. No `addEventListener`, no `.bind(this)`, no cleanup needed.
 
 ---
 
 ## Basic usage
 
-Use standard HTML event attributes — `onclick`, `oninput`, `onsubmit`, etc. The value is the name of a method on your component class, without parentheses.
+Use standard HTML event attributes — `onclick`, `oninput`, `onsubmit`, etc. The value is the name of a method on your component class, prefixed with `$`, without parentheses.
 
 ```javascript
 class MyButton extends StatefulElement {
     view() {
-        return `<button onclick="handleClick">Click me</button>`;
+        return `<button onclick="$handleClick">Click me</button>`;
     }
 
-    handleClick(event) {
+    $handleClick(event) {
         console.log('clicked', event.target);
     }
 }
 ```
 
 The handler receives the native `Event` object. Everything you'd normally do with it — `event.preventDefault()`, `event.target`, `event.currentTarget` — works as expected.
+
+### The `$` prefix
+
+All template-callable methods must be prefixed with `$`. This keeps them visually distinct from lifecycle methods (`view`, `onMount`, etc.) and prevents accidental collisions with SWC's own API. If you forget the `$`, SWC logs a warning and does not bind the handler:
+
+```
+SWC: <my-button> — handler "handleClick" must be prefixed with $ to be callable from a template (e.g. $handleClick).
+```
 
 ---
 
@@ -39,13 +47,13 @@ class SearchBox extends StatefulElement {
             <input
                 type="text"
                 value="${this.state.search.query}"
-                oninput="handleInput"
+                oninput="$handleInput"
                 placeholder="Search..."
             />
         `;
     }
 
-    handleInput(event) {
+    $handleInput(event) {
         searchStore.setState({ query: event.target.value });
     }
 }
@@ -61,14 +69,14 @@ Call `event.preventDefault()` inside your handler as you normally would:
 class MyForm extends StatefulElement {
     view() {
         return `
-            <form onsubmit="handleSubmit">
+            <form onsubmit="$handleSubmit">
                 <input type="text" name="email" />
                 <button type="submit">Submit</button>
             </form>
         `;
     }
 
-    handleSubmit(event) {
+    $handleSubmit(event) {
         event.preventDefault();
         const data = new FormData(event.target);
         // handle form data...

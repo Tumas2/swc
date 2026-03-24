@@ -21,7 +21,7 @@ export class FavButton extends NanoRenderStatefulElement {
     /**
      * Toggles the liked state and adjusts the like count.
      */
-    toggleLike() {
+    $toggleLike() {
         const { liked, likeCount } = this.state.article;
         articleStore.setState({
             liked: !liked,

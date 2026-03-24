@@ -1,17 +1,17 @@
 <form>
     <div class="field">
         <label for="name">Full name</label>
-        <input id="name" type="text" oninput="updateField" data-field="name"
+        <input id="name" type="text" oninput="$updateField" data-field="name"
                value="{{ profile.name }}" placeholder="Alex Jensen">
     </div>
     <div class="field">
         <label for="handle">Handle</label>
-        <input id="handle" type="text" oninput="updateField" data-field="handle"
+        <input id="handle" type="text" oninput="$updateField" data-field="handle"
                value="{{ profile.handle }}" placeholder="@alexj">
     </div>
     <div class="field">
         <label for="bio">Bio</label>
-        <textarea id="bio" oninput="updateField" data-field="bio"
+        <textarea id="bio" oninput="$updateField" data-field="bio"
                   placeholder="Tell us about yourself...">{{ profile.bio }}</textarea>
     </div>
 </form>

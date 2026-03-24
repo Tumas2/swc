@@ -6,7 +6,7 @@ just the store.
 
 ## Key concepts
 
-- Events (`oninput="updateField"`) updating store state on every keystroke
+- Events (`oninput="$updateField"`) updating store state on every keystroke
 - `computed()` deriving display values (initials, fallback text) from raw state
 - One component writing, one reading — the classic reactive data flow pattern
 

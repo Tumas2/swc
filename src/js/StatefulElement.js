@@ -301,6 +301,10 @@ export class StatefulElement extends HTMLElement {
                 if (attr.name.startsWith('data-swc-event-')) {
                     const eventName = attr.name.substring(15); // 'data-swc-event-'.length
                     const handlerName = attr.value;
+                    if (!handlerName.startsWith('$')) {
+                        console.warn(`SWC: <${this.tagName.toLowerCase()}> — handler "${handlerName}" must be prefixed with $ to be callable from a template (e.g. $${handlerName}).`);
+                        continue;
+                    }
                     if (typeof this[handlerName] === 'function') {
                         const handler = this[handlerName].bind(this);
                         // We do not remove the data-swc-event-* attribute here. It stays stable to prevent inspector flashing.
@@ -308,7 +312,7 @@ export class StatefulElement extends HTMLElement {
                         element.addEventListener(eventName, handler);
                         this._eventListeners.push({ element, eventName, handler });
                     } else {
-                        console.warn(`Method "${handlerName}" not found on component <${this.tagName.toLowerCase()}>.`);
+                        console.warn(`SWC: <${this.tagName.toLowerCase()}> — method "${handlerName}" not found.`);
                     }
                 }
             }

@@ -75,14 +75,14 @@ export class TaskForm extends NanoRenderStatefulElement {
     /** @returns {string} */
     view() {
         return `
-            <form onsubmit="addTask">
+            <form onsubmit="$addTask">
                 <input
                     type="text"
                     placeholder="New task title…"
                     value="{{uiStore.inputValue}}"
-                    oninput="handleInput"
+                    oninput="$handleInput"
                 >
-                <select onchange="handlePriority">
+                <select onchange="$handlePriority">
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
@@ -100,7 +100,7 @@ export class TaskForm extends NanoRenderStatefulElement {
      * Updates the input value in uiStore on each keystroke.
      * @param {Event} e
      */
-    handleInput(e) {
+    $handleInput(e) {
         uiStore.setState({ inputValue: e.target.value });
     }
 
@@ -108,7 +108,7 @@ export class TaskForm extends NanoRenderStatefulElement {
      * Updates the selected priority in uiStore.
      * @param {Event} e
      */
-    handlePriority(e) {
+    $handlePriority(e) {
         uiStore.setState({ inputPriority: e.target.value });
     }
 
@@ -116,7 +116,7 @@ export class TaskForm extends NanoRenderStatefulElement {
      * Adds a new task to taskStore and clears the input.
      * @param {Event} e
      */
-    addTask(e) {
+    $addTask(e) {
         e.preventDefault();
         const { inputValue, inputPriority } = uiStore.getState();
         const title = inputValue.trim();

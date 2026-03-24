@@ -21,7 +21,7 @@ class CounterControl extends NanoRenderStatefulElement {
         return { counter: counterStore };
     }
 
-    increment() {
+    $increment() {
         counterStore.setState({ count: this.state.counter.count + 1 });
         console.log('Increment button clicked!');
     }
