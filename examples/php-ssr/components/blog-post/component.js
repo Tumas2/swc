@@ -18,6 +18,7 @@ export class BlogPost extends NanoRenderStatefulElement {
     getTemplatePath() {
         return new URL('./markup.html', import.meta.url).pathname;
     }
+
 }
 
 customElements.define(meta.name, BlogPost);

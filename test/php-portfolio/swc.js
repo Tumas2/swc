@@ -1,7 +1,8 @@
 export { StateStore } from '../../src/js/store.js';
 export { loadHTML } from '../../src/js/html-loader.js';
 export { StatefulElement } from '../../src/js/StatefulElement.js'
-export { NanoRenderStatefulElement } from '../../src/js/NanoRenderer.js'
+export { NanoRenderStatefulElement } from '../../src/js/NanoRenderer.js';
+export { defineComponents, whenVisible, whenIdle } from '../../src/js/define-components.js';
 
 import { StatefulElement } from '../../src/js/StatefulElement.js';
 import { NanoRenderer } from '../../src/js/NanoRenderer.js'

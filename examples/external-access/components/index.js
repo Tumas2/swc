@@ -1,5 +1,8 @@
-import { exposeGlobally, getStore, getAllStores } from '../swc.js';
+import { exposeGlobally, getStore, getAllStores, defineComponents } from '../swc.js';
 import './stores.js';
-import './notification-badge/component.js';
+
+defineComponents({
+    'notification-badge': () => import('./notification-badge/component.js'),
+});
 
 exposeGlobally({ getStore, getAllStores });

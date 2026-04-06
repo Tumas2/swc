@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Router — SWC Example</title>
+    <base href="/swc/examples/router/">
     <script type="importmap">
     {
         "imports": {
@@ -20,18 +21,18 @@
 </head>
 <body>
 
-    <router-container id="app">
+    <router-container id="app" base-path="/swc/examples/router">
         <script>
             // Set base-path before the custom element upgrades.
             // Module scripts are deferred — this inline script runs first during HTML parsing.
             // Handles both server paths (/swc/examples/router/) and file paths ending in index.html.
-            {
-                const p = location.pathname;
-                const base = p.endsWith('/')
-                    ? p 
-                    : p.slice(0, p.lastIndexOf('/') + 1);
-                document.getElementById('app').setAttribute('base-path', base);
-            }
+            // {
+            //     const p = location.pathname;
+            //     const base = p.endsWith('/')
+            //         ? p 
+            //         : p.slice(0, p.lastIndexOf('/') + 1);
+            //     document.getElementById('app').setAttribute('base-path', base);
+            // }
         </script>
 
         <app-nav></app-nav>
@@ -41,6 +42,7 @@
                 <router-route path="/"          src="./pages/home.html"></router-route>
                 <router-route path="/about"     src="./pages/about.html"></router-route>
                 <router-route path="/posts"     src="./pages/posts.html"></router-route>
+                <router-route path="/posts-detail" src="./pages/post-detail.html"></router-route>
                 <router-route path="/posts/:id" src="./pages/post-detail.html"></router-route>
             </router-switch>
         </main>

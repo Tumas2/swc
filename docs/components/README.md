@@ -101,6 +101,84 @@ If you need a store under a custom key (e.g. `this.state.counter` instead of `th
 
 ---
 
+## Registering multiple components
+
+As a project grows, you end up with a list of `import './component.js'` statements — one per component — just to trigger each `customElements.define()` call. `defineComponents` replaces that list with a single declarative registry.
+
+```javascript
+// components/index.js
+import './stores.js';
+import { defineComponents } from './swc.js';
+
+defineComponents({
+    'site-header':  () => import('./site-header/component.js'),
+    'main-content': () => import('./main-content/component.js'),
+    'site-footer':  () => import('./site-footer/component.js'),
+});
+```
+
+Each value is a dynamic import function. By default all components load immediately — the behaviour is identical to a plain import list.
+
+### Lazy loading
+
+Pass `lazy: true` to defer loading until an element actually appears in the DOM. Components that are never used on the current page are never fetched.
+
+```javascript
+defineComponents({
+    'site-header':  () => import('./site-header/component.js'),
+    'main-content': () => import('./main-content/component.js'),
+    'settings-panel': () => import('./settings-panel/component.js'),
+}, {
+    lazy: true,
+    except: ['site-header']  // header loads eagerly; rest defer
+});
+```
+
+The `except` list always means "the exception to the rule set by `lazy`":
+- `lazy: true, except: ['x']` — all lazy, `x` loads eagerly
+- `lazy: false, except: ['x']` — all eager, only `x` defers
+
+When a lazy component's element appears in the DOM, SWC imports the module and the browser upgrades the element automatically. The router is also supported: `router-switch` fires a `swc:render` event after rendering so lazy components inside route pages are detected even inside shadow DOM.
+
+### Custom load timing
+
+For fine-grained control, pass a `trigger` function. It is called with `{ name, elements, load }` once the element is found. Call `load()` when you want the import to happen.
+
+```javascript
+import { defineComponents, whenVisible, whenIdle } from './swc.js';
+
+// Built-in: load when the element enters the viewport
+defineComponents({...}, {
+    lazy: true,
+    trigger: whenVisible({ rootMargin: '200px' })
+});
+
+// Built-in: load during browser idle time
+defineComponents({...}, {
+    lazy: true,
+    trigger: whenIdle({ timeout: 2000 })
+});
+
+// Custom: per-component logic
+defineComponents({...}, {
+    lazy: true,
+    trigger: ({ name, elements, load }) => {
+        if (name === 'heavy-chart') {
+            const io = new IntersectionObserver(([entry]) => {
+                if (entry.isIntersecting) { load(); io.disconnect(); }
+            });
+            elements.forEach(el => io.observe(el));
+        } else {
+            load(); // everything else loads immediately on element discovery
+        }
+    }
+});
+```
+
+`load()` is idempotent — calling it multiple times has no effect after the first call.
+
+---
+
 ## Lifecycle
 
 SWC components have four lifecycle moments you can hook into:

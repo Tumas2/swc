@@ -1,1 +1,5 @@
-import './blog-post/component.js';
+import { defineComponents } from '../swc.js';
+
+defineComponents({
+    'blog-post': () => import('./blog-post/component.js'),
+});

@@ -28,6 +28,14 @@ SWC (Stateful Web Components) is a pure Vanilla JavaScript library for building 
     - **Namespace isolation**: The `$` prefix prevents user handlers from accidentally colliding with SWC lifecycle methods. Methods without `$` are ignored and produce a `console.warn`.
     - **Stability**: Event listeners are managed and cleaned up automatically.
 
+### 4. Component Registration (`defineComponents`)
+- **Purpose**: Replaces bare `import './component.js'` lists with a single declarative registry.
+- **Signature**: `defineComponents(definitions, options?)` where `definitions` is `{ tagName: () => import('./component.js') }`.
+- **Lazy loading**: `{ lazy: true }` defers all imports until the element appears in the DOM; `{ lazy: false, except: ['x'] }` makes only `x` lazy.
+- **Trigger**: Optional `trigger({ name, elements, load })` function for custom load timing (e.g. viewport, idle). Built-ins: `whenVisible(opts)`, `whenIdle(opts)`.
+- **Router integration**: `router-switch` dispatches `swc:render` (`composed: true`) after each render with `detail: { root: shadowRoot }`. `defineComponents` listens for this to detect components inside shadow DOM.
+- **Pattern**: Each `components/index.js` imports stores first (static), then calls `defineComponents`.
+
 ## Utilities (Optional)
 
 ### Router (`router/`)

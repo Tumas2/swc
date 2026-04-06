@@ -1,4 +1,6 @@
 // swc.js registers router-container, router-switch, router-route, router-link
-import '../swc.js';
+import { defineComponents } from '../swc.js';
 
-import './app-nav/component.js';
+defineComponents({
+    'app-nav': () => import('./app-nav/component.js'),
+});

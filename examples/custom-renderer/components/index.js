@@ -1,2 +1,6 @@
 import './stores.js';
-import './team-list/component.js';
+import { defineComponents } from '../swc.js';
+
+defineComponents({
+    'team-list': () => import('./team-list/component.js'),
+});

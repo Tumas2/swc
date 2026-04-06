@@ -75,7 +75,13 @@ export class RouterSwitch extends StatefulElement {
             const src = routeToRender.getAttribute('src');
             const noCache = routeToRender.hasAttribute('no-cache');
             if (src) {
-                finalHtml = await loadHTML(src, !noCache);
+                try {
+                    finalHtml = await loadHTML(src, !noCache);
+                } catch (e) {
+                    console.error(`<router-switch>: failed to load template "${src}"`, e);
+                    this.store.setState({ loading: false });
+                    return;
+                }
             } else {
                 finalHtml = routeToRender.innerHTML;
             }
@@ -92,6 +98,11 @@ export class RouterSwitch extends StatefulElement {
             const renderer = this.getRenderer();
             const context = { ...this.computed(), ...this.state };
             this.html([renderer(finalHtml, context)]);
+            this.dispatchEvent(new CustomEvent('swc:render', {
+                bubbles: true,
+                composed: true,
+                detail: { root: this.shadowRoot }
+            }));
         }
 
     }

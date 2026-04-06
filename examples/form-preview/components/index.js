@@ -1,3 +1,7 @@
 import './stores.js';
-import './profile-form/component.js';
-import './profile-preview/component.js';
+import { defineComponents } from '../swc.js';
+
+defineComponents({
+    'profile-form':    () => import('./profile-form/component.js'),
+    'profile-preview': () => import('./profile-preview/component.js'),
+});

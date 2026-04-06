@@ -1,2 +1,6 @@
 import './stores.js';
-import './fav-button/component.js';
+import { defineComponents } from '../swc.js';
+
+defineComponents({
+    'fav-button': () => import('./fav-button/component.js'),
+});

@@ -90,3 +90,39 @@ A semantic anchor tag wrapper for internal navigation.
 As mentioned in the main `AGENTS.md`, this router is SSR-friendly.
 - The server can pre-fill a `<router-route>` with content based on the request URI.
 - The `RouterStore` initializes with the current `window.location.pathname`, so client-side state syncs with the server-rendered view immediately.
+
+## Setup Requirements
+
+### `<base>` tag — required when using `src=` on any route
+
+`<router-route src="...">` uses `fetch()` to load HTML. `fetch()` resolves relative URLs against `document.baseURI`. After `history.pushState`, `document.baseURI` changes to the new path — so a relative path like `./pages/home.html` silently fetches the wrong URL (404) on any route that adds a URL segment.
+
+**Fix**: add `<base href="/my-app/">` to `<head>`. This pins `document.baseURI` to a constant value for the entire page lifetime. `fetch()` respects the `<base>` tag natively — no router code changes are needed.
+
+```html
+<head>
+    <base href="/my-app/">
+</head>
+```
+
+The `href` must match the `base-path` attribute on `<router-container>` (with a trailing slash).
+
+> Routes that use only inline content (no `src=`) are unaffected and do not require `<base>`.
+
+### Server-side catch-all — required for hard-reload on deep routes
+
+`history.pushState` changes the browser URL without a server round-trip, so client-side navigation works regardless of server config. But a **hard reload** (F5, direct link) at a sub-path like `/my-app/posts/1` sends that path to the server, which returns 404 unless it is configured to serve `index.html` for all app routes.
+
+**Apache** (`.htaccess` in the app root):
+```apache
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ /my-app/index.html [L]
+```
+
+**Nginx**:
+```nginx
+location /my-app/ {
+    try_files $uri /my-app/index.html;
+}
+```
