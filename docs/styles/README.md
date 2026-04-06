@@ -106,6 +106,31 @@ Because the browser caches `CSSStyleSheet` objects, `tokens.css` and `animations
 
 ---
 
+## Document-level styles and fonts
+
+`@font-face` declarations inside a Shadow DOM are silently ignored by the browser — fonts must be declared at the document level to work. The same applies to any other stylesheet that needs to exist outside the shadow root.
+
+This normally means putting a `<link>` in `<head>` before your app loads, which splits a component's assets across two places and defeats lazy loading. `setDocumentStyles` solves this: call it inside `getStyles()` and the sheets are injected into `document.adoptedStyleSheets` the first time the component mounts — no earlier, no later.
+
+```javascript
+import styles from './style.css' with { type: 'css' };
+import weatherIconsStyles from './assets/weather-icons/css/weather-icons.css' with { type: 'css' };
+import weatherIconsWindStyles from './assets/weather-icons/css/weather-icons-wind.css' with { type: 'css' };
+
+class WeatherWidget extends NanoRenderStatefulElement {
+    getStyles() {
+        setDocumentStyles(weatherIconsStyles, weatherIconsWindStyles);
+        return [styles];
+    }
+}
+```
+
+`setDocumentStyles` accepts any number of `CSSStyleSheet` objects. Sheets are deduplicated — calling it multiple times (across renders or multiple component instances) will never inject the same sheet twice.
+
+This works naturally with lazy loading: if `WeatherWidget` is deferred until it enters the viewport, the font stylesheets arrive at the same moment the component does.
+
+---
+
 ## Styling from outside (CSS Parts)
 
 Shadow DOM blocks outside styles by design, but sometimes a component needs to expose styling hooks — for example, letting the page theme a navigation link's active state. The CSS `part` attribute and `::part()` selector handle this.
