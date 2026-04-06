@@ -1,4 +1,4 @@
-import { loadHTML } from './html-loader.js';
+import { loadHTML, resolvePartials } from './html-loader.js';
 import { morph } from './dom-morph.js';
 import { getStore } from './store.js';
 
@@ -38,7 +38,9 @@ export class StatefulElement extends HTMLElement {
 
         const templatePath = this.getTemplatePath();
         if (templatePath) {
-            this.template = await loadHTML(templatePath);
+            const raw = await loadHTML(templatePath);
+            const baseUrl = new URL(templatePath, location.href).href;
+            this.template = await resolvePartials(raw, baseUrl);
             clientTemplateFound = true;
         }
 

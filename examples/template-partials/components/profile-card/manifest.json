@@ -1,0 +1,6 @@
+{
+    "$schema": "../../../../../schemas/component.schema.json",
+    "name": "profile-card",
+    "version": "1.0.0",
+    "stores": ["profileStore"]
+}

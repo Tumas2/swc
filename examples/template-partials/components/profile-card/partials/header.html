@@ -1,0 +1,12 @@
+<div class="header">
+    <div class="avatar">{{ profile.name }}</div>
+    <div class="meta">
+        <strong class="name">{{ profile.name }}</strong>
+        <span class="role">{{ profile.role }}</span>
+        {{#if profile.online}}
+            <span class="status online">Online</span>
+        {{else}}
+            <span class="status away">Away</span>
+        {{/if}}
+    </div>
+</div>

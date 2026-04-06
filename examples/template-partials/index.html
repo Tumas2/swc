@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template Partials — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 680px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+            color: #111;
+            line-height: 1.7;
+        }
+        h1 { margin-bottom: 0.25rem; font-size: 2rem; }
+        .meta { color: #888; margin-bottom: 2rem; }
+        p { margin-bottom: 1.2rem; }
+    </style>
+</head>
+<body>
+
+    <h1>Template Partials</h1>
+    <p class="meta">Breaking large templates into focused, reusable files</p>
+
+    <p>
+        The <code>profile-card</code> component below uses three template files instead of one.
+        The main <code>markup.html</code> is just four lines — it delegates to
+        <code>partials/header.html</code> and <code>partials/bio.html</code> via
+        <code>{{#html '...'}}</code>.
+        Each partial has full access to the same store state and can use any NanoRenderer syntax.
+    </p>
+
+    <profile-card></profile-card>
+
+</body>
+</html>

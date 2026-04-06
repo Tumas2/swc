@@ -133,6 +133,42 @@ Iterates over an array. Inside the block, use `{{ this.property }}` for the curr
 </ul>
 ```
 
+### Partials
+
+When a template file grows large, you can split it into smaller files and pull them in with `{{#html './path.html'}}`. SWC replaces each tag with the content of the referenced file before the template is compiled.
+
+```html
+<!-- markup.html -->
+<div class="card">
+    {{#html './partials/header.html'}}
+    <hr>
+    {{#html './partials/bio.html'}}
+</div>
+```
+
+```html
+<!-- partials/header.html -->
+<div class="header">
+    <strong>{{ user.name }}</strong>
+    {{#if user.online}}
+        <span class="badge">Online</span>
+    {{else}}
+        <span class="badge away">Away</span>
+    {{/if}}
+</div>
+```
+
+A few things to know:
+
+- **Paths are relative to the including file.** A partial inside `components/card/markup.html` resolves `./partials/bio.html` as `components/card/partials/bio.html`.
+- **Partials share the full template context.** Every partial receives the same merged state and computed values as the parent template — no extra wiring needed.
+- **Partials can include other partials.** Resolution is recursive, so a partial can itself use `{{#html '...'}}`.
+- **Loading happens once.** Partials are fetched and inlined at component mount time. The fully-resolved template is then compiled and cached by NanoRenderer like any other template.
+
+> **Partials only work with file-based templates** (via `getTemplatePath()`). Inline `view()` strings have no file path to resolve against.
+
+---
+
 ### Project-wide setup
 
 If you want all your components to use NanoRenderer without extending `NanoRenderStatefulElement` every time, create a shared base class:

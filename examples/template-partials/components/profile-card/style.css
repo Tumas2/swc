@@ -1,0 +1,105 @@
+:host {
+    display: block;
+    max-width: 360px;
+}
+
+.card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 0;
+}
+
+/* header partial */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #6366f1;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-align: center;
+    padding: 4px;
+    line-height: 1.2;
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111;
+}
+
+.role {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.status {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+    width: fit-content;
+    margin-top: 2px;
+}
+
+.status.online {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status.away {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* bio partial */
+.bio {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bio p {
+    margin: 0;
+    color: #374151;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.contact {
+    font-size: 0.85rem;
+    color: #6366f1;
+    text-decoration: none;
+}
+
+.contact:hover {
+    text-decoration: underline;
+}
