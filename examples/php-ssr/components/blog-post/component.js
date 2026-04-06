@@ -1,5 +1,5 @@
 import { NanoRenderStatefulElement, createStore } from '../../swc.js';
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 import storeJson from '../../stores/post-store.json' with { type: 'json' };
 
 // createStore() picks up server-injected state from window.__SWC_INITIAL_STATE__.post

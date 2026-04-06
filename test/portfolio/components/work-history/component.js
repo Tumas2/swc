@@ -1,7 +1,7 @@
 import { NanoRenderStatefulElement } from 'swc';
 import { workStore } from '../stores.js';
 import localStyles from './style.css' with { type: 'css' };
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 
 /**
  * Work history list grouped by company.

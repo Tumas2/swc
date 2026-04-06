@@ -1,6 +1,6 @@
 import { NanoRenderStatefulElement } from 'swc';
 import localStyles from './style.css' with { type: 'css' };
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 
 /**
  * Layout shell for the About section.

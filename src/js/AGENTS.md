@@ -15,7 +15,7 @@ SWC (Stateful Web Components) is a pure Vanilla JavaScript library for building 
 
 ### 2. State Management (`StateStore`)
 - **Pattern**: Pub/Sub architecture.
-- **Integration**: Components wire stores via `getManifest()` (preferred — auto-wires from `component.json`) or `getStores()` (explicit, custom keys). If both return stores, manifest wins and a `console.warn` is logged.
+- **Integration**: Components wire stores via `getManifest()` (preferred — auto-wires from `manifest.json`) or `getStores()` (explicit, custom keys). If both return stores, manifest wins and a `console.warn` is logged.
 - **Reactivity**: `StatefulElement` automatically subscribes to these stores and triggers `render()` on state changes.
 - **Methods**: `getState()`, `setState()`, `resetState()`, `subscribe()`, `unsubscribe()`.
 - **Typed stores**: `AttributedStateStore` (created when manifest uses `attributes` instead of `state`) validates types on `setState()` and warns on mismatch.
@@ -77,7 +77,7 @@ When building components, follow the "Folder-per-Component" pattern to ensure mo
 ### Component Structure
 Each component should live in its own directory (e.g., `components/user-greeting/`) containing:
 - `component.js`: Class definition and logic.
-- `component.json`: Manifest (`name`, `version`, `stores[]`).
+- `manifest.json`: Manifest (`name`, `version`, `stores[]`).
 - `markup.html`: The HTML template (if not using inline `view()`).
 - `style.css`: Component-specific styles.
 
@@ -87,7 +87,7 @@ Each component should live in its own directory (e.g., `components/user-greeting
 ```
 test/php-routing/components/user-greeting/
 ├── component.js
-├── component.json
+├── manifest.json
 ├── markup.html
 └── style.css
 ```
@@ -95,12 +95,12 @@ test/php-routing/components/user-greeting/
 **Implementation Pattern (`component.js`):**
 ```javascript
 import { NanoRenderStatefulElement } from 'swc';
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 import componentStyle from './style.css' with { type: 'css' };
 
 class UserGreeting extends NanoRenderStatefulElement {
 
-    // 1. Provide manifest — auto-wires stores listed in component.json
+    // 1. Provide manifest — auto-wires stores listed in manifest.json
     getManifest() {
         return meta;
     }
@@ -132,7 +132,7 @@ Use `getStores()` instead of `getManifest()` only when you need stores under cus
 1.  **Separation**: Keep logic, view, and style in separate files for maintainability.
 2.  **CSS Modules**: Use `import ... with { type: 'css' }` for native CSS module support.
 3.  **Relative Paths**: Use `import.meta.url` to resolve paths for external assets like templates.
-4.  **Store connection**: prefer `getManifest()` to auto-wire from `component.json`; use `getStores()` when custom state keys are needed.
+4.  **Store connection**: prefer `getManifest()` to auto-wire from `manifest.json`; use `getStores()` when custom state keys are needed.
 
 ## Server-Side Rendering (SSR)
 

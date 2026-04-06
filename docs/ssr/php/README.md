@@ -37,9 +37,9 @@ foreach ([
 
 ## Manifest files
 
-### component.json
+### manifest.json
 
-Each component you want to auto-discover needs a `component.json` in its folder:
+Each component you want to auto-discover needs a `manifest.json` in its folder:
 
 ```json
 {
@@ -99,7 +99,7 @@ Place `to_script_tag()` in `<head>` before the JS module import.
 
 ## ComponentRegistry
 
-Auto-discovers components from a folder (any sub-folder with a `component.json`) and renders them with state from `StoreRegistry`.
+Auto-discovers components from a folder (any sub-folder with a `manifest.json`) and renders them with state from `StoreRegistry`.
 
 ```php
 $components = new ComponentRegistry(

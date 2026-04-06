@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Demonstrates:
  *  - StoreRegistry auto-discovers stores/ folder, loads default state from store.json
  *  - Server-side data merged on top via merge()
- *  - ComponentRegistry auto-discovers components/ folder via component.json
+ *  - ComponentRegistry auto-discovers components/ folder via manifest.json
  *  - preload_tags() in <head> for CSS
  *  - StoreRegistry::to_script_tag() sets window.__SWC_INITIAL_STATE__
  *  - Components rendered as Declarative Shadow DOM — content visible before JS loads

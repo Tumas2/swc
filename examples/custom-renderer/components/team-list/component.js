@@ -1,6 +1,6 @@
 import { StatefulElement } from '../../swc.js';
 import { teamStore } from '../stores.js';
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 
 /**
  * Renders a team member list using Handlebars.js as the template engine.

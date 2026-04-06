@@ -30,7 +30,7 @@ Creates a complete four-file component under `./components/my-card/` relative to
 ```
 components/my-card/
 ├── component.js     ← NanoRenderStatefulElement class
-├── component.json   ← manifest (name, version, stores)
+├── manifest.json   ← manifest (name, version, stores)
 ├── markup.html      ← NanoRenderer template
 └── style.css        ← scoped shadow DOM styles
 ```
@@ -86,9 +86,9 @@ The extension lives in `vscode-swc/` and provides two things: automatic JSON val
 
 ### JSON validation
 
-Once the extension is installed, VS Code automatically validates `component.json` and `stores/*.json` files. No `$schema` field is required — validation triggers by file path pattern.
+Once the extension is installed, VS Code automatically validates `manifest.json` and `stores/*.json` files. No `$schema` field is required — validation triggers by file path pattern.
 
-What gets checked in **component.json**:
+What gets checked in **manifest.json**:
 - `name` must be kebab-case and contain at least one hyphen
 - `version` must be a valid semver string
 - `stores` must be an array of strings
@@ -122,7 +122,7 @@ Type the prefix and press `Tab` (or select from IntelliSense) to expand.
 
 | Prefix | Expands to |
 | :-- | :-- |
-| `swc-component-json` | Full `component.json` manifest |
+| `swc-component-json` | Full `manifest.json` manifest |
 | `swc-store-json` | `store.json` with `state` |
 | `swc-store-attributed-json` | `store.json` with typed `attributes` |
 
@@ -138,7 +138,7 @@ Type the prefix and press `Tab` (or select from IntelliSense) to expand.
 
 The schemas are hosted on GitHub and bundled into the VS Code extension. If you use a different editor that supports JSON Schema, add a `$schema` field to your manifests pointing at the raw GitHub URLs — your editor will fetch and cache them automatically.
 
-**`component.json`:**
+**`manifest.json`:**
 
 ```json
 {

@@ -9,7 +9,7 @@ Server-side rendering for [SWC (Stateful Web Components)](../../../../README.md)
 | Class | Description |
 | :--- | :--- |
 | `StoreRegistry` | Auto-discovers `store.json` files, manages state, emits `<script>` tag |
-| `ComponentRegistry` | Auto-discovers `component.json` files, renders with store state |
+| `ComponentRegistry` | Auto-discovers `manifest.json` files, renders with store state |
 | `Component` | Renders a single component to a DSD HTML string |
 | `StateInjector` | Low-level: collects state and emits `window.__SWC_INITIAL_STATE__` |
 | `NanoRenderer` | PHP port of the JS NanoRenderer — processes `markup.html` templates |

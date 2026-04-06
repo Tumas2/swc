@@ -1,6 +1,6 @@
 import { NanoRenderStatefulElement } from '../../swc.js';
 import { articleStore } from '../stores.js';
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 import styles from './style.css' with { type: 'css' };
 
 /**

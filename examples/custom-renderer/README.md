@@ -36,5 +36,5 @@ custom-renderer/
     └── team-list/
         ├── component.js    ← getRenderer() wraps Handlebars.compile()
         ├── markup.html     ← Handlebars template syntax
-        └── component.json
+        └── manifest.json
 ```

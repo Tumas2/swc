@@ -1,7 +1,7 @@
 import { NanoRenderStatefulElement } from '../../swc.js';
 import { notificationStore } from '../stores.js';
 import localStyles from './style.css' with { type: 'css' };
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 
 export class NotificationBadge extends NanoRenderStatefulElement {
 

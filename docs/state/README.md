@@ -134,7 +134,7 @@ const userStore = createStore(meta);
 
 A `store.json` file has two formats depending on how much structure you need: `state` for a plain store, `attributes` for a typed store. Use the `$schema` field to get inline validation and autocomplete in your editor.
 
-Once a store is registered with `createStore()`, any component that lists its id in `component.json` and implements `getManifest()` will have that store auto-wired into `this.state` — no `getStores()` required. See [Components → Auto-wiring stores](../components/README.md#auto-wiring-stores-with-getmanifest) for details.
+Once a store is registered with `createStore()`, any component that lists its id in `manifest.json` and implements `getManifest()` will have that store auto-wired into `this.state` — no `getStores()` required. See [Components → Auto-wiring stores](../components/README.md#auto-wiring-stores-with-getmanifest) for details.
 
 ---
 

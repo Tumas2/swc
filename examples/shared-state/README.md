@@ -37,5 +37,5 @@ shared-state/
         ├── component.js
         ├── markup.html
         ├── style.css
-        └── component.json
+        └── manifest.json
 ```

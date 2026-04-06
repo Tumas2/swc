@@ -48,13 +48,13 @@ Recommended for anything you'll maintain or share:
 ```
 components/my-counter/
 ├── component.js    — class definition and customElements.define()
-├── component.json  — manifest (name, version, stores)
+├── manifest.json  — manifest (name, version, stores)
 ├── markup.html     — HTML template (used by NanoRenderer and PHP SSR)
 └── style.css       — scoped styles for this component
 ```
 
-### component.json
-`component.json` holds the element name, version, and the list of stores the component subscribes to. The manifest is read by `ComponentRegistry` on the PHP SSR side for auto-discovery:
+### manifest.json
+`manifest.json` holds the element name, version, and the list of stores the component subscribes to. The manifest is read by `ComponentRegistry` on the PHP SSR side for auto-discovery:
 
 ```json
 {
@@ -68,18 +68,18 @@ components/my-counter/
 The name can also be imported and passed to `customElements.define()` to avoid hardcoding it in two places:
 
 ```javascript
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 
 customElements.define(meta.name, MyCounter);
 ```
 
 #### Auto-wiring stores with getManifest()
 
-If you return the manifest from `getManifest()`, any stores listed in `component.json` are resolved from the store registry automatically — no `getStores()` needed:
+If you return the manifest from `getManifest()`, any stores listed in `manifest.json` are resolved from the store registry automatically — no `getStores()` needed:
 
 ```javascript
 import { NanoRenderStatefulElement } from '../../swc.js';
-import meta from './component.json' with { type: 'json' };
+import meta from './manifest.json' with { type: 'json' };
 import styles from './style.css' with { type: 'css' };
 
 export class MyCounter extends NanoRenderStatefulElement {

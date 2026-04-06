@@ -40,5 +40,5 @@ php-ssr/
         ├── component.js
         ├── markup.html
         ├── style.css
-        └── component.json
+        └── manifest.json
 ```

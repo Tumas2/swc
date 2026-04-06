@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace SWC;
 
 /**
- * Auto-discovers SWC components from a folder by reading each component.json
+ * Auto-discovers SWC components from a folder by reading each manifest.json
  * and manages rendering with optional StoreRegistry integration.
  *
  * Usage:
@@ -21,7 +21,7 @@ namespace SWC;
  *   echo $components->render('site-nav');      // renders with no state (static)
  *
  * When $stores is provided, ComponentRegistry:
- *   - Automatically passes each component's required stores (from component.json "stores" array)
+ *   - Automatically passes each component's required stores (from manifest.json "stores" array)
  *   - Emits a warning if a required store has no state
  *
  * Individual components can still be used directly via new Component() if needed.
@@ -31,7 +31,7 @@ class ComponentRegistry
     /** @var array<string, Component> Keyed by tag name. */
     private array $components = [];
 
-    /** @var array<string, array> component.json metadata, keyed by tag name. */
+    /** @var array<string, array> manifest.json metadata, keyed by tag name. */
     private array $metas = [];
 
     private ?StoreRegistry $stores;
@@ -116,14 +116,14 @@ class ComponentRegistry
     // -------------------------------------------------------------------------
 
     /**
-     * Scans $fs_base for sub-folders that contain a component.json file.
+     * Scans $fs_base for sub-folders that contain a manifest.json file.
      *
      * @param string $fs_base
      * @param string $web_base
      */
     private function discover(string $fs_base, string $web_base): void
     {
-        foreach (glob($fs_base . '/*/component.json') ?: [] as $file) {
+        foreach (glob($fs_base . '/*/manifest.json') ?: [] as $file) {
             $meta = json_decode(file_get_contents($file), true);
             if (!is_array($meta) || !isset($meta['name'])) {
                 continue;
