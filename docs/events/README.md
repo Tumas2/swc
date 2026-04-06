@@ -94,6 +94,35 @@ This approach means the DOM stays clean and inspectable, listeners never pile up
 
 ---
 
+## Debugging tip: DevTools may show the wrong `e.target`
+
+If your component is rendered inside another component's shadow root (for example, a `<weather-widget>` inside a `<router-switch>`), you may notice a confusing discrepancy when you log an event object:
+
+```javascript
+$handleClick(event) {
+    console.log(event);         // DevTools shows: target: router-switch ← misleading
+    console.log(event.target);  // Logs the actual element: <button id="search-btn"> ← correct
+}
+```
+
+This is a **Chrome DevTools display artifact**, not a bug in your code. When DevTools serializes the event object for display, it reads the properties from its own inspector context — which lives outside all shadow roots. Shadow DOM's retargeting algorithm then resolves `event.target` to the outermost shadow host visible from that context.
+
+When you access `event.target` directly in JavaScript, retargeting is evaluated relative to your handler's scope (inside the shadow root), so you get the actual element every time.
+
+**Rule of thumb:** always read `event.target` in code — never rely on the collapsed event object view in DevTools when shadow DOM is involved.
+
+If you ever need a guaranteed reference to the exact element the event originated from (regardless of shadow boundaries), use `event.composedPath()[0]`:
+
+```javascript
+$handleClick(event) {
+    const origin = event.composedPath()[0]; // always the actual element
+}
+```
+
+For most cases `event.target` is sufficient, but `composedPath()[0]` is the bulletproof alternative.
+
+---
+
 ## Supported events
 
 Any event attribute the browser supports works — `onclick`, `oninput`, `onchange`, `onsubmit`, `onfocus`, `onblur`, `onkeydown`, `onmouseover`, and so on. If the browser fires it and you can put it on an element as an attribute, SWC will bind it.
