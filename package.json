@@ -5,7 +5,7 @@
     "type": "module",
     "main": "index.js",
     "scripts": {
-        "build": "rollup -c",
+        "build": "rm -rf dist && rollup -c",
         "watch": "rollup -cw"
     },
     "keywords": [],

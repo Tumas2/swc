@@ -10,6 +10,7 @@ export function loadHTML(path, cache = true) {
 	const promise = fetch(path)
 		.then(response => {
 			if (!response.ok) {
+				templateCache.delete(path);
 				throw new Error(`Failed to load HTML from ${path}`);
 			}
 			return response.text();

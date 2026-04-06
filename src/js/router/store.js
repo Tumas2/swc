@@ -16,6 +16,7 @@ export class RouterStore extends StateStore {
             pathname: window.location.pathname.substring(cleanBasePath.length) || '/',
             params: {},
             loading: false,
+            error: null,
         });
 
         this.basePath = cleanBasePath;
@@ -60,7 +61,7 @@ export class RouterStore extends StateStore {
         }
         
         const params = bestMatch ? bestMatch.params : {};
-        this.setState({ pathname: currentPath, params, loading: true });
+        this.setState({ pathname: currentPath, params, loading: true, error: null });
     }
 
     /**

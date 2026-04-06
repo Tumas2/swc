@@ -46,6 +46,11 @@ export class RouterSwitch extends StatefulElement {
             return;
         }
 
+        if (this.state.router?.error) {
+            // A template failed to load — don't retry until the user navigates away.
+            return;
+        }
+
         let routeToRender = null;
         let catchAllRoute = null;
 
@@ -79,7 +84,10 @@ export class RouterSwitch extends StatefulElement {
                     finalHtml = await loadHTML(src, !noCache);
                 } catch (e) {
                     console.error(`<router-switch>: failed to load template "${src}"`, e);
-                    this.store.setState({ loading: false });
+                    if (this.state.router?.loading) {
+                        this.store.setState({ loading: false, error: src });
+                    }
+                    this.html([`<div style="padding:1rem;color:#b91c1c;font-family:monospace;border:1px solid #fca5a5;border-radius:6px;background:#fff1f2"><strong>Failed to load template</strong><br><code>${src}</code><br><small>Check the browser console and make sure the file exists.</small></div>`]);
                     return;
                 }
             } else {
