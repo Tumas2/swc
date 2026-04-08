@@ -228,4 +228,60 @@ If `createStore()` is called twice with the same id, the second call returns the
 
 ---
 
+## Persisting state
+
+Pass `{ persist: true }` to `createStore()` to save a store's state in `localStorage` and restore it on the next page load.
+
+```javascript
+const cartStore = createStore('cartStore', { items: [], total: 0 }, { persist: true });
+```
+
+Or set `"persist": true` in the `store.json` manifest — this is the recommended approach when using the [PHP SSR package](../ssr/php/README.md), since the manifest is already the shared source of truth:
+
+```json
+{
+    "$schema": "https://raw.githubusercontent.com/Tumas2/swc/main/schemas/store.schema.json",
+    "id": "cartStore",
+    "persist": true,
+    "state": {
+        "items": [],
+        "total": 0
+    }
+}
+```
+
+```javascript
+import meta from './stores/cart-store.json' with { type: 'json' };
+
+const cartStore = createStore(meta);
+```
+
+State is stored under the key `swc:<id>` (e.g. `swc:cartStore`).
+
+`resetState()` clears the localStorage entry — the next page load starts from the JS defaults again.
+
+### Priority order
+
+When a store loads, SWC applies state in this order — the first match wins:
+
+1. **SSR state** (`window.__SWC_INITIAL_STATE__`) — if the PHP package injected state for this store, it is used and localStorage is skipped for this page load.
+2. **localStorage** — restored if no SSR state was present.
+3. **Defaults** — the `state` object from your code or `store.json`.
+
+This means server state is always authoritative on first load. User actions after that are persisted normally.
+
+### Manual wiring
+
+If you created a store without `createStore()` — for example, a `StateStore` subclass — you can wire persistence yourself:
+
+```javascript
+import { persistStore } from './swc.js';
+
+persistStore(myStore, 'myStoreId');
+```
+
+`persistStore` is idempotent but is not designed to be called twice on the same store — wire it once at creation time.
+
+---
+
 [← Components](../components/README.md) | [Next: Templates →](../templates/README.md)

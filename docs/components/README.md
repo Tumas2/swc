@@ -213,6 +213,32 @@ onUnmount() {
 
 Called automatically every time a subscribed store changes. You rarely need to override this — it syncs state, runs the renderer, and updates the DOM via `morph()`. See the [API Reference](../api/stateful-element.md#render) if you need custom render behaviour.
 
+### On attribute change — `observedAttributes`
+
+When you want a component to re-render in response to an HTML attribute changing, declare `static observedAttributes` with the list of attribute names to watch. Natively, you would also implement `attributeChangedCallback` yourself to react to changes — SWC implements it for you and calls `render()` automatically, so all you need is the declaration.
+
+See [Custom element lifecycle callbacks](https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_custom_elements#custom_element_lifecycle_callbacks) on MDN for the full native behaviour.
+
+```javascript
+class WeatherWidget extends StatefulElement {
+    static observedAttributes = ['type'];
+
+    computed(state) {
+        return {
+            type: this.getAttribute('type') ?? 'normal',
+        };
+    }
+}
+```
+
+```html
+<weather-widget type="small"></weather-widget>
+```
+
+Changing the attribute from outside — via `setAttribute` or by the parent component updating its template — triggers an immediate re-render with the new value available via `this.getAttribute()`.
+
+This is the right tool when a value is per-instance configuration passed from the outside, rather than shared application state that belongs in a store. Both can be used together in the same component.
+
 ---
 
 ## Computed values

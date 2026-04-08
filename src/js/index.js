@@ -5,3 +5,4 @@ export { morph } from './dom-morph.js';
 export { defineComponents, whenVisible, whenIdle } from './define-components.js';
 export { setDocumentStyles } from './document-styles.js';
 export { loadScript } from './script-loader.js';
+export { persistStore } from './persist-store.js';

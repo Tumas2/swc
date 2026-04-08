@@ -1,5 +1,7 @@
 "use strict";
 
+import { persistStore } from './persist-store.js';
+
 /** @type {Map<string, StateStore>} */
 const _registry = new Map();
 
@@ -153,11 +155,15 @@ export class AttributedStateStore extends StateStore {
  *   Store id string, a store.json manifest with a `state` key, or a store.json
  *   manifest with an `attributes` key.
  * @param {object} [defaultState] - Default state when passing a plain key. Ignored when manifest is passed.
+ * @param {object} [options]
+ * @param {boolean} [options.persist=false] - When true, persists state to localStorage under `swc:<id>`.
+ *   Can also be set via `"persist": true` in the store.json manifest.
  * @returns {StateStore|AttributedStateStore}
  */
-export function createStore(keyOrMeta, defaultState) {
-    const isMeta = typeof keyOrMeta === 'object';
-    const key    = isMeta ? keyOrMeta.id : keyOrMeta;
+export function createStore(keyOrMeta, defaultState, { persist = false } = {}) {
+    const isMeta     = typeof keyOrMeta === 'object';
+    const key        = isMeta ? keyOrMeta.id : keyOrMeta;
+    const shouldPersist = persist || (isMeta && !!keyOrMeta.persist);
 
     if (_registry.has(key)) {
         console.warn(`SWC: a store with id "${key}" is already registered. Returning the existing store.`);
@@ -168,6 +174,7 @@ export function createStore(keyOrMeta, defaultState) {
         const store       = new AttributedStateStore(keyOrMeta.attributes);
         const serverState = window.__SWC_INITIAL_STATE__?.[key];
         if (serverState) store._state = { ...store._state, ...serverState };
+        if (shouldPersist) persistStore(store, key);
         _registry.set(key, store);
         return store;
     }
@@ -176,6 +183,7 @@ export function createStore(keyOrMeta, defaultState) {
     const serverState = window.__SWC_INITIAL_STATE__?.[key];
     const store       = new StateStore(serverState ?? state);
     store._initialState = { ...state };
+    if (shouldPersist) persistStore(store, key);
     _registry.set(key, store);
     return store;
 }

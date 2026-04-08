@@ -17,6 +17,10 @@
             "type": "object",
             "description": "Initial state for a plain StateStore — provide either state or attributes, not both"
         },
+        "persist": {
+            "type": "boolean",
+            "description": "When true, state is persisted to localStorage under the key swc:<id> and restored on page load (unless SSR state is present)"
+        },
         "attributes": {
             "type": "object",
             "description": "Typed attribute schema for an AttributedStateStore — provide either state or attributes, not both",

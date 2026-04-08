@@ -70,6 +70,18 @@ export class StatefulElement extends HTMLElement {
     }
 
     /**
+     * Called by the browser when an observed attribute changes.
+     * Triggers a re-render if the component is already connected.
+     * To watch specific attributes, declare `static observedAttributes` on your subclass.
+     * @param {string} _name
+     * @param {*} _oldValue
+     * @param {*} _newValue
+     */
+    attributeChangedCallback(_name, _oldValue, _newValue) {
+        if (this._stores) this.render();
+    }
+
+    /**
      * Lifecycle method called when the component is removed from the DOM.
      */
     disconnectedCallback() {
