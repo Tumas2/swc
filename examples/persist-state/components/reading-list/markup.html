@@ -1,0 +1,25 @@
+<form onsubmit="$addItem" class="add-form">
+    <input
+        id="title-input"
+        type="text"
+        placeholder="Add a book title..."
+        autocomplete="off"
+        aria-label="Book title"
+    >
+    <button type="submit">Add</button>
+</form>
+
+<ul class="list">
+    {{#each readingListStore.items}}
+    <li class="item">
+        <span>{{this}}</span>
+        <button class="remove" data-index="{{index}}" onclick="$removeItem" aria-label="Remove">✕</button>
+    </li>
+    {{else}}
+    <li class="empty">No books yet. Add one above.</li>
+    {{/each}}
+</ul>
+
+{{#if isNotEmpty}}
+<button class="clear" onclick="$clearAll">Clear all</button>
+{{/if}}

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persist State — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 560px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.35rem; }
+        p { color: #555; margin-bottom: 2rem; line-height: 1.6; }
+        .hint {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Reading List</h1>
+    <p>Items are saved to <code>localStorage</code> automatically. Add a few books, then refresh the page — they'll still be here.</p>
+
+    <reading-list></reading-list>
+
+    <p class="hint">State is stored under the key <code>swc:readingListStore</code>. "Clear all" calls <code>resetState()</code>, which removes the localStorage entry.</p>
+
+</body>
+</html>

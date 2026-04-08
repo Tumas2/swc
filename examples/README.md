@@ -11,6 +11,8 @@ is self-contained — open `index.html` (or `index.php`) in a local server and i
 | [`theme-switcher/`](theme-switcher/) | Global theme state propagating to multiple components |
 | [`custom-renderer/`](custom-renderer/) | Plugging Handlebars in via `getRenderer()` |
 | [`form-preview/`](form-preview/) | Live form → preview with shared store and event handling |
+| [`persist-state/`](persist-state/) | Store state saved to localStorage and restored on page load |
+| [`observed-attributes/`](observed-attributes/) | Component re-renders when an HTML attribute changes from outside |
 
 ---
 
