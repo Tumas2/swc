@@ -4,7 +4,7 @@
 
 **Option A — GitHub release**
 
-Download the latest release from [GitHub Releases](https://github.com/your-org/swc/releases) and drop the files into your project:
+Download the latest release from [ Releases](https://codeberg.org/Tumas2/swc/releases) and drop the files into your project:
 
 ```html
 <script type="module" src="./swc.min.js"></script>
