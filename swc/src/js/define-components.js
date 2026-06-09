@@ -16,15 +16,6 @@ document.addEventListener('swc:render', (event) => {
     }
 });
 
-// Listen for StatefulElement connects — catches components inserted into shadow roots,
-// which are invisible to the MutationObserver watching the light DOM.
-document.addEventListener('swc:connected', (event) => {
-    const { name, element } = event.detail ?? {};
-    if (!name || !_pending.has(name)) return;
-    const { importFn, trigger } = _pending.get(name);
-    _activate(name, importFn, trigger, [element]);
-});
-
 /**
  * Registers custom elements with optional lazy loading.
  *

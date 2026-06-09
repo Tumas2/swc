@@ -44,14 +44,13 @@ export class StatefulElement extends HTMLElement {
             clientTemplateFound = true;
         }
 
-        // LOOK INTO: We probably don't want to cache view
-        // if (!clientTemplateFound) {
-        //     const viewHtml = this.view();
-        //     if (viewHtml) {
-        //         this.template = viewHtml;
-        //         clientTemplateFound = true;
-        //     }
-        // }
+        if (!clientTemplateFound) {
+            const viewHtml = this.view();
+            if (viewHtml) {
+                this.template = viewHtml;
+                clientTemplateFound = true;
+            }
+        }
 
         if (!clientTemplateFound && this.shadowRoot && !this.template) {
             this.template = this.shadowRoot.innerHTML;
@@ -68,12 +67,6 @@ export class StatefulElement extends HTMLElement {
 
         this.render();
         this.onMount();
-
-        this.dispatchEvent(new CustomEvent('swc:connected', {
-            bubbles: true,
-            composed: true,
-            detail: { name: this.localName, element: this },
-        }));
     }
 
     /**
@@ -108,7 +101,7 @@ export class StatefulElement extends HTMLElement {
         this._syncState();
 
         const computedData = this.computed(this.state);
-        
+
         const context = { ...this.state, ...computedData };
         const renderer = this.getRenderer();
         const templateString = this.template || this.view() || '';
