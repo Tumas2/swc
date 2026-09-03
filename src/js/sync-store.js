@@ -4,8 +4,13 @@
  * Wires a store to a remote backend with push/pull sync.
  *
  * On page load and whenever the device comes back online, a sync cycle runs:
- *   1. push — sends current state to the backend (if the store is dirty)
- *   2. pull — fetches remote state since last sync and merges it back
+ *   1. pull — fetches remote state since last sync and merges it in
+ *   2. push — sends the merged state back to the backend (if the store is dirty)
+ *
+ * Pull runs first on purpose. Pushing first uploads a copy of local state that
+ * predates whatever other devices have changed since, overwriting their work —
+ * and the pull that follows then just reads that same stale data back, so the
+ * device can never see the change it just destroyed.
  *
  * The library has no opinion on transport, backend, or conflict resolution.
  * Those concerns live entirely inside the push/pull/onBeforeSync functions
@@ -96,16 +101,11 @@ export function syncStore(store, key, { push, pull, onBeforeSync, onSyncError } 
         dirty = false;
 
         try {
-            const state = store.getState();
             const lastSyncTimestamp = getLastSyncTimestamp();
 
-            if ((wasDirty || lastSyncTimestamp === 0) && push) {
-                await push(state);
-                setDirty(false);
-            }
-
+            // 1. Pull — find out what changed elsewhere and merge it in first.
             if (pull) {
-                const remoteData = await pull(state, lastSyncTimestamp);
+                const remoteData = await pull(store.getState(), lastSyncTimestamp);
                 if (remoteData !== undefined && remoteData !== null) {
                     const merged = onBeforeSync
                         ? onBeforeSync(store.getState(), remoteData)
@@ -114,6 +114,14 @@ export function syncStore(store, key, { push, pull, onBeforeSync, onSyncError } 
                     store.setState(merged);
                     _fromSync = false;
                 }
+            }
+
+            // 2. Push the merged result. State is read here, after the merge —
+            //    reading it before the pull would upload the pre-merge copy and
+            //    clobber the remote changes we just took in.
+            if ((wasDirty || lastSyncTimestamp === 0) && push) {
+                await push(store.getState());
+                setDirty(false);
             }
 
             setLastSyncTimestamp(Date.now());
