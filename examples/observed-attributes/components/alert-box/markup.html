@@ -1,0 +1,9 @@
+<div class="alert {{type}}">
+    <span class="icon">
+        {{#if isInfo}}ℹ{{/if}}
+        {{#if isSuccess}}✓{{/if}}
+        {{#if isWarning}}⚠{{/if}}
+        {{#if isError}}✕{{/if}}
+    </span>
+    <slot>Alert message.</slot>
+</div>

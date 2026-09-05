@@ -1,0 +1,8 @@
+{
+    "$schema": "../../../../schemas/store.schema.json",
+    "id": "readingListStore",
+    "persist": true,
+    "state": {
+        "items": []
+    }
+}

@@ -133,6 +133,34 @@ Iterates over an array. Inside the block, use `{{ this.property }}` for the curr
 </ul>
 ```
 
+### Keeping identity with `key`
+
+Rendering updates the DOM in place rather than replacing it, and by default
+elements are matched **by position**. That is right for stable markup, but wrong
+the moment a child moves — a list reorders, or a conditional block above it
+appears. The element sitting in that position is then reused for different data,
+or replaced outright.
+
+For plain markup that is harmless. For anything holding state it is not: a
+focused input, a playing video, or a nested component with its own shadow root
+and store subscriptions.
+
+Add a `key` attribute and the element is matched by identity instead, then moved
+into place rather than replaced:
+
+```html
+{{#each tabs}}
+    <tab-panel key="{{ this.id }}" label="{{ this.label }}"></tab-panel>
+{{/each}}
+```
+
+Use a value that identifies the item, not its position — a record id works,
+`{{ index }}` defeats the purpose. Keys only need to be unique among siblings.
+
+Reach for it when a list can reorder, when items can be inserted or removed from
+anywhere but the end, or when the children are components. A fixed list that only
+ever appends does not need keys.
+
 ### Partials
 
 When a template file grows large, you can split it into smaller files and pull them in with `{{#html './path.html'}}`. SWC replaces each tag with the content of the referenced file before the template is compiled.

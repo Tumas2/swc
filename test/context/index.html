@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWC Context Test — provides / uses</title>
+    <link rel="stylesheet" href="./style.css">
+    <script type="importmap">
+        { "imports": { "swc": "./swc.js" } }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+</head>
+<body>
+    <h1>Component context</h1>
+
+    <p class="intro">
+        One <code>&lt;logged-days&gt;</code> component, two hosts. It declares no
+        store of its own — it inherits one under the alias <code>data</code>, plus a
+        plain string <code>loggedKey</code> telling it which key to read. The child
+        source mentions neither meals nor workouts.
+    </p>
+
+    <div class="grid">
+        <meal-host></meal-host>
+        <workout-host></workout-host>
+    </div>
+
+    <h2>What to check</h2>
+    <ol>
+        <li>Each child lists its own host's dates, and names a different
+            <code>loggedKey</code>.</li>
+        <li>Clicking a host's button adds 2026-09-06 and the child updates on its
+            own — it is subscribed to the inherited store, not re-rendered by the
+            parent.</li>
+        <li>Only the clicked host's child changes.</li>
+        <li>The workout host declares a store in its manifest <em>and</em> returns
+            one from <code>getStores()</code>. Both resolve; the click counter
+            proves the second one is live.</li>
+        <li><b>The console must be clean.</b> Coexisting sources no longer warn —
+            only a real key collision does.</li>
+    </ol>
+
+    <h2>Keyed reordering</h2>
+    <p class="intro">
+        Click a few chips in each row to give them different counts, then reverse.
+        Keyed chips keep their count with their label because the elements were
+        moved. Unkeyed chips do not — positional matching replaced them, which for
+        a nested component means losing its shadow root, subscriptions and state.
+    </p>
+    <reorder-host></reorder-host>
+
+    <h2>Negative case</h2>
+    <p class="intro">
+        The orphan below uses <code>data</code> with no provider above it. It should
+        render its empty state and log one warning per unresolved alias (two here).
+    </p>
+    <logged-days class="orphan"></logged-days>
+</body>
+</html>

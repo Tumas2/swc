@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWC Persist Test — cross-tab</title>
+    <link rel="stylesheet" href="./style.css">
+    <script type="importmap">
+        { "imports": { "swc": "./swc.js" } }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+</head>
+<body>
+    <h1>Cross-tab persistence</h1>
+
+    <p class="intro">
+        Open this page in <b>two tabs</b>. The store is persisted, so every write
+        saves the whole state to localStorage.
+    </p>
+
+    <tab-probe></tab-probe>
+
+    <h2>What to check</h2>
+    <ol>
+        <li>Bump <code>left</code> in tab A. Tab B updates without a reload.</li>
+        <li>Now the real case: bump <code>left</code> in tab A, then bump
+            <code>right</code> in tab B. Both counts must survive. Before this fix
+            tab B wrote its stale copy and tab A's increment vanished.</li>
+        <li>Type a note in one tab — it appears in the other.</li>
+        <li>Reset in one tab clears both.</li>
+        <li>No infinite ping-pong: counts settle immediately and the console stays
+            quiet.</li>
+    </ol>
+</body>
+</html>

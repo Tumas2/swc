@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observed Attributes — SWC Example</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "swc": "./swc.js"
+        }
+    }
+    </script>
+    <script type="module" src="./components/index.js"></script>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 600px;
+            margin: 3rem auto;
+            padding: 0 1.5rem;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.35rem; }
+        h2 { font-size: 1rem; margin: 2rem 0 0.75rem; color: #374151; }
+        p { color: #555; margin-bottom: 2rem; line-height: 1.6; }
+        .stack { display: flex; flex-direction: column; gap: 0.6rem; }
+        .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .controls button {
+            font-family: system-ui, sans-serif;
+            font-size: 0.9rem;
+            padding: 0.35rem 0.85rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+            color: #374151;
+        }
+        .controls button:hover { background: #f3f4f6; }
+        .controls button.active { background: #111; color: #fff; border-color: #111; }
+    </style>
+</head>
+<body>
+
+    <h1>Observed Attributes</h1>
+    <p>
+        Declaring <code>static observedAttributes = ['type']</code> on a component makes the
+        browser call <code>attributeChangedCallback</code> whenever that attribute changes.
+        SWC hooks into this to trigger a re-render automatically — no store needed.
+    </p>
+
+    <h2>All four types</h2>
+    <div class="stack">
+        <alert-box type="info">This is an informational message.</alert-box>
+        <alert-box type="success">Your changes have been saved.</alert-box>
+        <alert-box type="warning">Your session will expire in 5 minutes.</alert-box>
+        <alert-box type="error">Something went wrong. Please try again.</alert-box>
+    </div>
+
+    <h2>Live demo — change the type from outside</h2>
+    <p>
+        These buttons call <code>setAttribute('type', ...)</code> on the component below.
+        SWC's <code>attributeChangedCallback</code> fires and re-renders it immediately.
+    </p>
+    <div class="controls">
+        <button data-type="info"    class="active">info</button>
+        <button data-type="success">success</button>
+        <button data-type="warning">warning</button>
+        <button data-type="error">error</button>
+    </div>
+    <alert-box id="live-demo" type="info">Watch me change when you click the buttons above.</alert-box>
+
+    <script type="module">
+        const demo = document.getElementById('live-demo');
+        const buttons = document.querySelectorAll('.controls button');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                demo.setAttribute('type', btn.dataset.type);
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+    </script>
+
+</body>
+</html>

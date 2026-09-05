@@ -21,6 +21,7 @@ If you're looking for a specific method or option, check the [API Reference](api
 ### Core concepts
 - [Components](components/README.md) — building blocks of every SWC app
 - [State](state/README.md) — managing and sharing data between components
+- [Context](context/README.md) — passing stores and config down to nested components
 - [Templates](templates/README.md) — rendering HTML from your component
 - [Styles](styles/README.md) — scoped styles and composing stylesheets
 - [Events](events/README.md) — handling user interactions
