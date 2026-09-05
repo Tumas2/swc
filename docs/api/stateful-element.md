@@ -14,7 +14,17 @@ getStores(): { [key: string]: StateStore }
 
 Returns an object mapping keys to `StateStore` instances. The component subscribes to all returned stores and re-renders when any of them change. Each store's state is merged into `this.state` under its key.
 
+Merged by key with the manifest's `stores` and any inherited [context](../context/README.md), in this order:
+
+1. `getStores()` — lowest precedence
+2. Inherited context — the aliases in the manifest's `uses`
+3. `stores` in the manifest — wins any key collision
+
+Using more than one source is normal and silent; only a genuine collision on the same key warns. The manifest wins because it is the declaration SSR reads.
+
 - Called once during `connectedCallback()`.
+- Prefer the manifest for anything static. Use this for stores that cannot be named ahead of time.
+- A falsy value is skipped with a warning rather than throwing.
 - Default returns `{}`.
 
 ---
@@ -184,6 +194,22 @@ Pulls the latest state from all subscribed stores into `this.state`. Called at t
 Walks up the DOM — crossing Shadow DOM boundaries — to find the nearest ancestor element with a `store` property. Used by router components to locate the `RouterStore` without importing it directly.
 
 Useful if you're building a component that needs to discover a contextual store from an ancestor rather than a shared module import.
+
+---
+
+### `_resolveContext()`
+
+Resolves every alias in the manifest's `uses` against the nearest ancestor that provides it. Returns `{ stores, values }` — provided ids that match a registered store become subscriptions, everything else is a plain config value merged into state.
+
+Warns once per alias that no ancestor provides, then carries on. See [Context](../context/README.md).
+
+---
+
+### `_findContextProvider(alias)`
+
+Finds the nearest ancestor whose manifest `provides` the given alias, crossing Shadow DOM boundaries.
+
+Starts one level above the component, so a component that both provides and uses the same alias inherits from further up rather than resolving to itself.
 
 ---
 

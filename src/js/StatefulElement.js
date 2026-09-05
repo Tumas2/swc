@@ -1,6 +1,7 @@
 import { loadHTML, resolvePartials } from './html-loader.js';
 import { morph } from './dom-morph.js';
 import { getStore } from './store.js';
+import { requestComponents } from './define-components.js';
 
 /**
  * A state-driven base class for creating powerful, reactive Web Components.
@@ -25,6 +26,7 @@ export class StatefulElement extends HTMLElement {
         this.state = {};
         this.template = null;
         this._stores = null;
+        this._contextValues = {};
         this._eventListeners = [];
         this._renderCallback = this.render.bind(this);
     }
@@ -34,6 +36,13 @@ export class StatefulElement extends HTMLElement {
      * @returns {Promise<void>}
      */
     async connectedCallback() {
+        // Load declared child components before awaiting the template, so their module
+        // fetches overlap this one's instead of queueing behind it. Order does not matter
+        // beyond that — a custom element upgrades whenever its definition arrives, whether
+        // that is before or after this component renders the child into its shadow root.
+        const manifest = this.getManifest();
+        if (manifest?.components) requestComponents(manifest.components, this.localName);
+
         let clientTemplateFound = false;
 
         const templatePath = this.getTemplatePath();
@@ -121,7 +130,9 @@ export class StatefulElement extends HTMLElement {
     /**
      * @abstract
      * Subclasses can implement this to provide a map of store instances.
-     * Used as a fallback when getManifest() returns no stores.
+     * Merged with manifest stores and inherited context; the manifest wins on a
+     * key collision. Use it for stores resolved at runtime, which a static
+     * manifest cannot name.
      * @returns {Object.<string, {subscribe: Function, getState: Function, setState: Function}>}
      */
     getStores() {
@@ -212,39 +223,124 @@ export class StatefulElement extends HTMLElement {
 
     /**
      * @private
-     * Resolves store instances from getManifest() or falls back to getStores().
-     * Manifest stores take precedence — they keep JS and PHP SSR in sync.
-     * Warns if both sources define stores so the developer can remove the redundancy.
+     * Resolves the store instances this component subscribes to, from three
+     * sources merged by key:
+     *
+     *   1. getStores()       — runtime-resolved, lowest precedence
+     *   2. inherited context — aliases declared in the manifest's `uses`
+     *   3. getManifest()     — the `stores` array, wins any key collision
+     *
+     * The manifest wins collisions because it is the only declaration the PHP
+     * renderer can read without executing JavaScript, so it must stay
+     * authoritative for SSR. Sources coexisting is normal and silent; only an
+     * actual collision on the same key warns.
+     *
+     * Plain (non-store) context values are stashed on `_contextValues` and
+     * merged into state by `_syncState`.
      * @returns {object}
      */
     _resolveStores() {
+        const tag = this.tagName.toLowerCase();
+        const resolved = {};
+
+        // 1. Runtime-resolved stores. Skip anything falsy — subscribing to
+        //    undefined throws, and a missing store is the caller's bug to see.
         const manual = this.getStores();
-        const manifest = this.getManifest();
-        const manifestStores = manifest?.stores ?? [];
-
-        const hasManual = Object.keys(manual).length > 0;
-        const hasManifest = manifestStores.length > 0;
-
-        if (hasManual && hasManifest) {
-            console.warn(`SWC: <${this.tagName.toLowerCase()}> defines stores in both getManifest() and getStores(). Remove one to avoid duplicate subscriptions. Using getManifest().`);
-        }
-
-        if (hasManifest) {
-            const stores = {};
-            for (const id of manifestStores) {
-                const store = getStore(id);
-                if (!store) {
-                    console.warn(`SWC: <${this.tagName.toLowerCase()}> — auto-wiring failed for "${id}". Make sure createStore("${id}") is called before this component connects.`);
-                    continue;
-                }
-                stores[id] = store;
+        for (const key in manual) {
+            if (manual[key]) {
+                resolved[key] = manual[key];
+            } else {
+                console.warn(`SWC: <${tag}> — getStores() returned no store for "${key}". Skipping.`);
             }
-            return stores;
         }
 
-        if (hasManual) return manual;
+        // 2. Context inherited from an ancestor that provides it.
+        const { stores: inherited, values } = this._resolveContext();
+        for (const key in inherited) {
+            if (key in resolved) {
+                console.warn(`SWC: <${tag}> — inherited context "${key}" collides with a store from getStores(). Using the inherited one.`);
+            }
+            resolved[key] = inherited[key];
+        }
 
-        return {};
+        // 3. Manifest stores. Authoritative — they win any collision.
+        for (const id of (this.getManifest()?.stores ?? [])) {
+            const store = getStore(id);
+            if (!store) {
+                console.warn(`SWC: <${tag}> — auto-wiring failed for "${id}". Make sure createStore("${id}") is called before this component connects.`);
+                continue;
+            }
+            if (id in resolved) {
+                console.warn(`SWC: <${tag}> — manifest store "${id}" collides with a store of the same name from getStores() or context. Using the manifest one.`);
+            }
+            resolved[id] = store;
+        }
+
+        // A plain value must never shadow a store subscription of the same name.
+        this._contextValues = {};
+        for (const key in values) {
+            if (key in resolved) {
+                console.warn(`SWC: <${tag}> — context value "${key}" collides with a store of the same name. Ignoring the value.`);
+                continue;
+            }
+            this._contextValues[key] = values[key];
+        }
+
+        return resolved;
+    }
+
+    /**
+     * @private
+     * Resolves every alias listed in the manifest's `uses` against the nearest
+     * ancestor whose manifest `provides` it.
+     *
+     * A provided value that names a registered store resolves to that store and
+     * is subscribed to like any other. Anything else is passed through as a
+     * plain config value.
+     * @returns {{stores: object, values: object}}
+     */
+    _resolveContext() {
+        const wanted = this.getManifest()?.uses ?? [];
+        const stores = {};
+        const values = {};
+
+        for (const alias of wanted) {
+            const provider = this._findContextProvider(alias);
+            if (!provider) {
+                console.warn(`SWC: <${this.tagName.toLowerCase()}> uses context "${alias}" but no ancestor provides it.`);
+                continue;
+            }
+
+            const declared = provider.getManifest().provides[alias];
+            const store = typeof declared === 'string' ? getStore(declared) : null;
+
+            if (store) {
+                stores[alias] = store;
+            } else {
+                values[alias] = declared;
+            }
+        }
+
+        return { stores, values };
+    }
+
+    /**
+     * @private
+     * Finds the nearest ancestor providing `alias`. Starts one level up so a
+     * component that both provides and uses the same alias cannot resolve to
+     * itself.
+     * @param {string} alias
+     * @returns {HTMLElement | null}
+     */
+    _findContextProvider(alias) {
+        const root = this.getRootNode();
+        const start = this.parentElement ?? (root instanceof ShadowRoot ? root.host : null);
+        if (!start) return null;
+
+        return this._findClosestElement(
+            (el) => el.getManifest?.()?.provides?.[alias] !== undefined,
+            start,
+        );
     }
 
     /**
@@ -364,6 +460,7 @@ export class StatefulElement extends HTMLElement {
         for (const key in this._stores) {
             this.state[key] = this._stores[key].getState();
         }
+        Object.assign(this.state, this._contextValues);
     }
 
     /**

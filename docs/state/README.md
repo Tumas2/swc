@@ -270,6 +270,27 @@ When a store loads, SWC applies state in this order — the first match wins:
 
 This means server state is always authoritative on first load. User actions after that are persisted normally.
 
+### Across tabs
+
+Persisted stores stay in step across open tabs of the same app. When one tab writes, the others pick the change up and re-render — no reload, no polling.
+
+This matters more than it sounds. Every write saves the **whole** state, so without it a second tab holding an older copy would flatten the first tab's work the next time it wrote anything at all. It would not have to touch the same field, or any field the other tab cared about.
+
+```
+Tab A and Tab B both open, both holding the same state.
+Tab A edits something  → saved.
+Tab B writes anything  → picks up A's change first, then saves. Both survive.
+```
+
+A few things worth knowing:
+
+- **Same browser, same origin only.** It will not reach another device — that is what [`syncStore`](../sync/README.md) is for. A separate browser profile or an incognito window is a different storage area and will not see the change.
+- **Incoming changes replace, they do not merge.** localStorage is treated as the truth. Real conflict resolution belongs in `syncStore`, not in the persistence layer.
+- **An incoming change does not mark the store dirty.** The tab that made the change is the one responsible for pushing it, so a sync is not triggered twice.
+- **`resetState()` in one tab resets the others**, since clearing the key is itself a change.
+
+Nothing to configure — it comes with `persist: true`.
+
 ### Manual wiring
 
 If you created a store without `createStore()` — for example, a `StateStore` subclass — you can wire persistence yourself:

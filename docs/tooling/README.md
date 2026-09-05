@@ -92,6 +92,9 @@ What gets checked in **manifest.json**:
 - `name` must be kebab-case and contain at least one hyphen
 - `version` must be a valid semver string
 - `stores` must be an array of strings
+- `components` must be an array of kebab-case tag names
+- `provides` must be an object of alias to string, number or boolean
+- `uses` must be an array of strings
 
 What gets checked in **store manifests**:
 - `id` is required

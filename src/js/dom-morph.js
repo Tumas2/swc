@@ -48,14 +48,66 @@ export function morph(fromNode, toNode) {
         }
     }
 
-    // Sync children using live NodeLists to avoid array allocations per recursive call
-    const fromChildren = fromNode.childNodes;
+    morphChildren(fromNode, toNode);
+}
+
+/**
+ * Reads the `key` attribute off a node, or null if it has none.
+ * @param {Node} node
+ * @returns {string | null}
+ */
+function keyOf(node) {
+    return node.nodeType === Node.ELEMENT_NODE ? node.getAttribute('key') : null;
+}
+
+/**
+ * Syncs `fromNode`'s children to match `toNode`'s.
+ *
+ * Children are matched by position by default, which is fine for stable markup
+ * but wrong the moment a child moves — a conditional block appears above it, or
+ * a list reorders. Positional matching then falls through to `replaceChild`,
+ * which destroys the element. For a nested component that means tearing down
+ * its shadow root, its store subscriptions and any state it was holding.
+ *
+ * A `key` attribute opts a child out of that. Keyed children are matched by
+ * identity and moved into place instead of being replaced, so the element
+ * survives a reorder intact.
+ *
+ * @param {Node} fromNode
+ * @param {Node} toNode
+ */
+function morphChildren(fromNode, toNode) {
     const toChildren = toNode.childNodes;
     const toLength = toChildren.length;
 
+    // Index the existing keyed children up front. Built lazily — markup without
+    // keys pays nothing beyond the scan.
+    let keyed = null;
+    for (const node of fromNode.childNodes) {
+        const key = keyOf(node);
+        if (key !== null) {
+            (keyed ??= new Map()).set(key, node);
+        }
+    }
+
     for (let i = 0; i < toLength; i++) {
         const toChild = toChildren[i];
-        const fromChild = fromChildren[i];
+
+        // Live lookup — an earlier iteration may have moved a node into place.
+        let fromChild = fromNode.childNodes[i];
+
+        const toKey = keyOf(toChild);
+        if (toKey !== null && keyed) {
+            const match = keyed.get(toKey);
+            if (match) {
+                // Move the existing element to this position rather than
+                // replacing whatever happens to be sitting here.
+                if (match !== fromChild) {
+                    fromNode.insertBefore(match, fromChild ?? null);
+                }
+                fromChild = match;
+            }
+        }
 
         if (!fromChild) {
             // New node — append it
@@ -70,7 +122,7 @@ export function morph(fromNode, toNode) {
     }
 
     // Remove extra children from the old node
-    while (fromChildren.length > toLength) {
+    while (fromNode.childNodes.length > toLength) {
         fromNode.removeChild(fromNode.lastChild);
     }
 }

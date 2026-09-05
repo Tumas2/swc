@@ -4,6 +4,17 @@
  */
 const _pending = new Map();
 
+/**
+ * Every tag name handed to `defineComponents`, eager and lazy alike.
+ *
+ * Lets `requestComponents` tell "never registered" apart from "registered eagerly,
+ * import still in flight" — a name in the second case is in neither `_pending` nor
+ * `customElements`, and must not be reported as missing.
+ *
+ * @type {Set<string>}
+ */
+const _known = new Set();
+
 // Listen for router-switch renders — scan the shadow root for pending components.
 document.addEventListener('swc:render', (event) => {
     const root = event.detail?.root;
@@ -16,8 +27,14 @@ document.addEventListener('swc:render', (event) => {
     }
 });
 
-// Listen for StatefulElement connects — catches components inserted into shadow roots,
-// which are invisible to the MutationObserver watching the light DOM.
+// Listen for swc:connected — catches components placed where neither DOM scan reaches.
+//
+// StatefulElement dispatches this on connect, but the case that matters here is code
+// dispatching it *manually* for an element it just created: an unregistered element has
+// no connectedCallback to announce itself, so a host that builds children imperatively
+// (a dashboard assembling widgets from stored state, say) has no other way to say
+// "this exists now". Manifest `components` covers children a parent knows statically;
+// this covers the ones it only learns about at runtime.
 document.addEventListener('swc:connected', (event) => {
     const { name, element } = event.detail ?? {};
     if (!name || !_pending.has(name)) return;
@@ -31,6 +48,10 @@ document.addEventListener('swc:connected', (event) => {
  * Each value is a dynamic import function: `() => import('./component.js')`.
  * Eager components have their import called immediately. Lazy components wait
  * until their element appears in the DOM (light or shadow via the router).
+ *
+ * Components nested inside another component's shadow root are invisible to both
+ * discovery paths. Those are declared by their parent instead — see
+ * `requestComponents` and the manifest's `components` array.
  *
  * @param {Record<string, function(): Promise<*>>} definitions
  *   Map of custom element tag names to dynamic import functions.
@@ -49,12 +70,49 @@ document.addEventListener('swc:connected', (event) => {
  */
 export function defineComponents(definitions, { lazy = false, except = [], trigger } = {}) {
     for (const [name, importFn] of Object.entries(definitions)) {
+        _known.add(name);
         const isLazy = lazy ? !except.includes(name) : except.includes(name);
         if (isLazy) {
             _observeAndLoad(name, importFn, trigger);
         } else {
             importFn();
         }
+    }
+}
+
+/**
+ * Loads components that another component declares as its dependencies.
+ *
+ * `StatefulElement` calls this with its manifest's `components` array, so a parent
+ * pulls in the children living inside its own shadow root — where neither the
+ * light-DOM MutationObserver nor the router's `swc:render` scan can reach them.
+ * Each child then connects and requests its own dependencies, so one declaration
+ * per level carries the cascade to any depth.
+ *
+ * A declared dependency bypasses its registered `trigger` and loads immediately.
+ * The parent is already rendering it, so deferring on viewport or idle would mean
+ * waiting on an element that does not exist yet.
+ *
+ * Repeat requests are no-ops — `_load` drops the name from `_pending` synchronously —
+ * so dependency cycles terminate on the second pass.
+ *
+ * @param {string[]} names Tag names to load.
+ * @param {string} [requestedBy] Tag name of the requesting component, used in warnings.
+ */
+export function requestComponents(names, requestedBy = 'unknown') {
+    if (!Array.isArray(names)) return;
+
+    for (const name of names) {
+        const entry = _pending.get(name);
+        if (entry) {
+            _load(name, entry.importFn);
+            continue;
+        }
+
+        // Already loaded, or eager and still importing — either way, nothing to do.
+        if (_known.has(name) || customElements.get(name)) continue;
+
+        console.warn(`SWC: <${requestedBy}> declares component "${name}" which is not registered. Add it to defineComponents().`);
     }
 }
 

@@ -34,6 +34,8 @@ SWC (Stateful Web Components) is a pure Vanilla JavaScript library for building 
 - **Lazy loading**: `{ lazy: true }` defers all imports until the element appears in the DOM; `{ lazy: false, except: ['x'] }` makes only `x` lazy.
 - **Trigger**: Optional `trigger({ name, elements, load })` function for custom load timing (e.g. viewport, idle). Built-ins: `whenVisible(opts)`, `whenIdle(opts)`.
 - **Router integration**: `router-switch` dispatches `swc:render` (`composed: true`) after each render with `detail: { root: shadowRoot }`. `defineComponents` listens for this to detect components inside shadow DOM.
+- **Nested components**: DOM discovery cannot see inside another *component's* shadow root, so a parent declares those children in `manifest.json` under `components: []`. `StatefulElement.connectedCallback` passes them to `requestComponents()`, which loads them immediately (bypassing any `trigger`) and warns on names absent from `defineComponents`. Each child declares its own, so the cascade reaches any depth.
+- **Runtime-created components**: `swc:connected` is also a **public hook**, not just a lifecycle event. A host that creates children from runtime state (e.g. a dashboard grid placing user-configured widgets) dispatches it manually on each new element — an unregistered element has no `connectedCallback`, so this is the only signal it can produce. `defineComponents` listens on `document`; this path *does* respect `trigger`. Do not remove that listener: manifest `components` covers static children only.
 - **Pattern**: Each `components/index.js` imports stores first (static), then calls `defineComponents`.
 
 ## Utilities (Optional)

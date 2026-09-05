@@ -48,13 +48,13 @@ Recommended for anything you'll maintain or share:
 ```
 components/my-counter/
 ├── component.js    — class definition and customElements.define()
-├── manifest.json  — manifest (name, version, stores)
+├── manifest.json  — manifest (name, version, stores, components, context)
 ├── markup.html     — HTML template (used by NanoRenderer and PHP SSR)
 └── style.css       — scoped styles for this component
 ```
 
 ### manifest.json
-`manifest.json` holds the element name, version, and the list of stores the component subscribes to. The manifest is read by `ComponentRegistry` on the PHP SSR side for auto-discovery:
+`manifest.json` holds the element name, version, the stores the component subscribes to, and the child components it renders. The manifest is read by `ComponentRegistry` on the PHP SSR side for auto-discovery:
 
 ```json
 {
@@ -95,9 +95,35 @@ customElements.define(meta.name, MyCounter);
 
 Each store id becomes a key in `this.state` directly — `"counterStore"` becomes `this.state.counterStore`. This keeps your JS and PHP SSR in sync: both read from the same manifest.
 
-If you implement both `getManifest()` (with stores) and `getStores()`, the manifest takes precedence and a warning is logged to remind you to remove the redundant one.
+If you implement both `getManifest()` (with stores) and `getStores()`, the two are merged by key. The manifest wins if the same key appears in both, since it is the declaration SSR reads; coexisting is normal and only a real collision warns.
 
 If you need a store under a custom key (e.g. `this.state.counter` instead of `this.state.counterStore`), use `getStores()` directly instead.
+
+#### Declaring child components
+
+Lazy loading discovers components by watching the DOM, which cannot see inside another
+component's shadow root. If your template renders another component, list it under `components`:
+
+```json
+{
+    "name": "meal-builder",
+    "version": "1.0.0",
+    "stores": ["calorieTrackerStore"],
+    "components": ["meal-item-editor"]
+}
+```
+
+`meal-item-editor` now loads whenever `meal-builder` does, and can stay lazy in
+`defineComponents`. The child's own manifest declares *its* children, so nesting works to any
+depth. This also requires `getManifest()` — the same hook that auto-wires stores.
+
+See [defineComponents → Nested components](../api/define-components.md#nested-components).
+
+#### Passing data to child components
+
+A parent can hand a store and some config down to the components it renders, so a
+child can be written once and reused under different hosts. Declare `provides` on
+the parent and `uses` on the child — see [Context](../context/README.md).
 
 ---
 

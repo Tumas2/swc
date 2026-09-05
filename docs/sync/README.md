@@ -16,6 +16,7 @@ SWC's approach to this is layered:
 |---|---|---|
 | Survive page reloads | `persistStore` | Write state to localStorage on every change |
 | Survive offline | `persistStore` | Restore from localStorage on load so the app is immediately usable |
+| Stay in step across tabs | `persistStore` | Apply another tab's write so two tabs cannot overwrite each other |
 | Sync with remote | `syncStore` | Push local changes and pull remote changes when online |
 
 The two utilities compose — a store can use both. `persistStore` ensures the app works without a network. `syncStore` enriches it when a network exists.
@@ -76,6 +77,8 @@ On page load:
 2. `syncStore` fires its first pull — remote changes merge in as soon as they arrive.
 
 `syncStore` applies its merged state via `setState`, which `persistStore` intercepts and saves to localStorage. They do not conflict.
+
+A change arriving from **another tab** is deliberately not treated as a local edit: `persistStore` applies it without marking the store dirty, so it does not schedule a push. The tab that made the change is the one that pushes it. See [Across tabs](../state/README.md#across-tabs).
 
 ---
 

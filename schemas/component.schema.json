@@ -25,6 +25,28 @@
             "items": {
                 "type": "string"
             }
+        },
+        "components": {
+            "type": "array",
+            "description": "Tag names of child components used inside this component's shadow root — loaded automatically when this component connects",
+            "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)+$"
+            }
+        },
+        "provides": {
+            "type": "object",
+            "description": "Context this component passes down to nested children, as alias -> value. A value naming a registered store id resolves to that store and the child subscribes to it; any other value is passed down as plain config. Children opt in by listing the alias in their own \"uses\".",
+            "additionalProperties": {
+                "type": ["string", "number", "boolean"]
+            }
+        },
+        "uses": {
+            "type": "array",
+            "description": "Context aliases this component inherits from the nearest ancestor whose \"provides\" declares them. Resolved stores are subscribed to and appear on state under the alias; plain values are merged into state as-is",
+            "items": {
+                "type": "string"
+            }
         }
     }
 }
