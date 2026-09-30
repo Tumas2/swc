@@ -10,12 +10,14 @@ declare(strict_types=1);
  *   require_once __DIR__ . '/path/to/swc/src/php/swc.php';
  *
  * Classes loaded (in dependency order):
- *   SWC\Sanitizer, SWC\NanoRenderer, SWC\StateInjector,
- *   SWC\Component, SWC\StoreRegistry, SWC\ComponentRegistry
+ *   SWC\Markup, SWC\TemplateLoader, SWC\Sanitizer, SWC\NanoRenderer,
+ *   SWC\StateInjector, SWC\Component, SWC\StoreRegistry, SWC\ComponentRegistry
  */
 
 $_swc_src = __DIR__ . '/src';
 
+require_once $_swc_src . '/Markup.php';
+require_once $_swc_src . '/TemplateLoader.php';
 require_once $_swc_src . '/Sanitizer.php';
 require_once $_swc_src . '/NanoRenderer.php';
 require_once $_swc_src . '/StateInjector.php';

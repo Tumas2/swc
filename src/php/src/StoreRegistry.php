@@ -10,6 +10,7 @@ namespace SWC;
  * Usage:
  *   $stores = new StoreRegistry(__DIR__ . '/stores');
  *   // Auto-discovered: workStore, skillsStore
+ *   $stores->add_path(__DIR__ . '/plugins/gallery/stores'); // more folders
  *
  *   $stores->merge('workStore', ['companies' => $server_companies]);
  *   echo $stores->to_script_tag();
@@ -31,6 +32,17 @@ class StoreRegistry
     public function __construct(string $fs_path)
     {
         $this->injector = new StateInjector();
+        $this->add_path($fs_path);
+    }
+
+    /**
+     * Discovers stores from another folder, e.g. one per plugin or theme.
+     * A store id that is already registered keeps its first definition.
+     *
+     * @param string $fs_path Filesystem path to a folder containing store.json files.
+     */
+    public function add_path(string $fs_path): void
+    {
         $this->discover($fs_path);
     }
 
@@ -119,6 +131,11 @@ class StoreRegistry
             }
 
             $id = $meta['id'];
+
+            if (isset($this->stores[$id])) {
+                trigger_error("SWC StoreRegistry: store '{$id}' in '{$file}' is already registered. Keeping the first one.", E_USER_WARNING);
+                continue;
+            }
 
             if (isset($meta['attributes']) && is_array($meta['attributes'])) {
                 $state = array_map(fn($def) => $def['default'] ?? null, $meta['attributes']);

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace SWC;
 
 /**
- * Renders a single SWC component as Declarative Shadow DOM (DSD).
+ * Renders a single SWC component as Declarative Shadow DOM (DSD), or as plain
+ * light DOM for static output.
  *
  * Usage:
  *   $c = new Component(
@@ -15,12 +16,12 @@ namespace SWC;
  *   echo $c->render(['workStore' => $data]);
  *
  * Output:
- *   <work-history>
- *     <template shadowrootmode="open">
- *       <link rel="stylesheet" href="/swc/.../work-history/style.css">
- *       <!-- rendered markup.html -->
- *     </template>
- *   </work-history>
+ *   <work-history><template shadowrootmode="open"><!-- rendered markup.html --><link rel="stylesheet" href="/swc/.../work-history/style.css"></template></work-history>
+ *
+ * The output has no added whitespace and the stylesheet link comes last:
+ * the JS side morphs the shadow root against markup.html by position, so
+ * anything placed before the markup would shift every node and force them
+ * all to be replaced on hydration.
  *
  * The tag name defaults to the basename of $fs_path but can be overridden.
  * CSS is linked (not inlined) so the browser can cache it and it can be
@@ -32,9 +33,6 @@ class Component
     private string $fs_path;
     private string $web_path;
     private string $version;
-
-    /** @var array<string, string> Static template cache shared across all instances. */
-    private static array $template_cache = [];
 
     /**
      * @param string $fs_path  Filesystem path to the component directory (contains markup.html).
@@ -55,45 +53,59 @@ class Component
     }
 
     /**
-     * Renders the component as a DSD custom element string.
+     * Renders the component as a custom element string.
      *
-     * @param array  $data       Template data (store state + any computed values).
-     * @param array  $host_attrs Extra attributes to add to the host element (e.g. ['slot' => 'history']).
-     * @param string $light_dom  HTML to inject as light DOM children inside the host element
-     *                           (used for slotted content in parent components).
+     * @param array|object $data       Template data (store state + any computed values).
+     * @param array        $host_attrs Extra attributes to add to the host element (e.g. ['slot' => 'history']).
+     *                                 true renders a bare attribute; false and null omit it.
+     * @param string       $light_dom  HTML to inject as light DOM children inside the host element
+     *                                 (used for slotted content in parent components).
+     * @param bool         $shadow     true (default) renders Declarative Shadow DOM. false renders
+     *                                 plain light DOM with <slot>s filled in and no stylesheet —
+     *                                 for static output where the component's JS is not loaded.
      * @return string
      */
-    public function render(array $data = [], array $host_attrs = [], string $light_dom = ''): string
+    public function render(array|object $data = [], array $host_attrs = [], string $light_dom = '', bool $shadow = true): string
     {
-        $template = $this->load_template();
-        $renderer = new NanoRenderer();
-        $inner    = $renderer->render($template, $data);
+        return $this->wrap($this->render_markup($data), self::attributes_to_string($host_attrs), $light_dom, $shadow);
+    }
+
+    /**
+     * Renders markup.html against $data, without the host element.
+     * on* attributes are converted to data-swc-event-* like the JS side does.
+     *
+     * @param array|object $data
+     * @return string
+     */
+    public function render_markup(array|object $data = []): string
+    {
+        $html = (new NanoRenderer())->render($this->load_template(), $data);
+        return Markup::convert_event_attributes($html);
+    }
+
+    /**
+     * Wraps rendered markup in the host element.
+     *
+     * @param string $markup    Rendered markup (from render_markup()).
+     * @param string $attr_str  Host attribute string including leading spaces, e.g. ' slot="a"'.
+     * @param string $light_dom HTML for the host's light DOM children.
+     * @param bool   $shadow    Declarative Shadow DOM (true) or flattened light DOM (false).
+     * @return string
+     */
+    public function wrap(string $markup, string $attr_str = '', string $light_dom = '', bool $shadow = true): string
+    {
+        $tag = $this->tag_name;
+
+        if (!$shadow) {
+            return "<{$tag}{$attr_str}>" . Markup::fill_slots($markup, $light_dom) . "</{$tag}>";
+        }
 
         $css_link = sprintf(
             '<link rel="stylesheet" href="%s">',
             htmlspecialchars($this->web_path . '/style.css' . $this->ver_suffix(), ENT_QUOTES, 'UTF-8')
         );
 
-        $attr_str = '';
-        foreach ($host_attrs as $name => $value) {
-            $attr_str .= sprintf(
-                ' %s="%s"',
-                htmlspecialchars($name, ENT_QUOTES, 'UTF-8'),
-                htmlspecialchars($value, ENT_QUOTES, 'UTF-8')
-            );
-        }
-
-        $light_section = $light_dom !== '' ? "\n" . $light_dom : '';
-
-        return sprintf(
-            "<%s%s>\n  <template shadowrootmode=\"open\">\n    %s\n    %s\n  </template>%s\n</%s>",
-            $this->tag_name,
-            $attr_str,
-            $css_link,
-            $inner,
-            $light_section,
-            $this->tag_name
-        );
+        return "<{$tag}{$attr_str}><template shadowrootmode=\"open\">{$markup}{$css_link}</template>{$light_dom}</{$tag}>";
     }
 
     /**
@@ -134,6 +146,28 @@ class Component
         return $this->tag_name;
     }
 
+    /**
+     * Builds an escaped attribute string from name => value pairs.
+     * true renders a bare attribute; false and null omit it.
+     *
+     * @param array $attrs
+     * @return string Attribute string with leading spaces, or ''.
+     */
+    public static function attributes_to_string(array $attrs): string
+    {
+        $out = '';
+        foreach ($attrs as $name => $value) {
+            if ($value === false || $value === null) {
+                continue;
+            }
+            $out .= ' ' . htmlspecialchars((string) $name, ENT_QUOTES, 'UTF-8');
+            if ($value !== true) {
+                $out .= '="' . htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8') . '"';
+            }
+        }
+        return $out;
+    }
+
     // -------------------------------------------------------------------------
     // Internal
     // -------------------------------------------------------------------------
@@ -149,21 +183,13 @@ class Component
     }
 
     /**
-     * Loads markup.html from disk, caching the result for the lifetime of the process.
+     * Loads markup.html with its partials resolved, cached for the process lifetime.
      *
      * @return string
      * @throws \RuntimeException If the template file cannot be read.
      */
     private function load_template(): string
     {
-        $path = $this->fs_path . '/markup.html';
-        if (!isset(self::$template_cache[$path])) {
-            $content = file_get_contents($path);
-            if ($content === false) {
-                throw new \RuntimeException("SWC Component: cannot read template at '{$path}'");
-            }
-            self::$template_cache[$path] = $content;
-        }
-        return self::$template_cache[$path];
+        return TemplateLoader::load($this->fs_path . '/markup.html');
     }
 }

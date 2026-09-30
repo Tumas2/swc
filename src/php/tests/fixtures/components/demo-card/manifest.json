@@ -1,0 +1,1 @@
+{ "name": "demo-card", "stores": ["counterStore"], "uses": ["theme", "label"] }

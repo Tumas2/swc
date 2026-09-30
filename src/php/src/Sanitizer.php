@@ -5,20 +5,35 @@ declare(strict_types=1);
 namespace SWC;
 
 /**
- * Strips dangerous tags and event attributes from an HTML string.
- * PHP equivalent of _sanitize() in NanoRenderer.js.
+ * Strips dangerous tags and attributes from an HTML string.
+ * PHP counterpart of _sanitize() in NanoRenderer.js.
+ *
+ * Parses with PHP's HTML5 parser (Dom\HTMLDocument), so the markup is read
+ * and serialized the same way a browser's DOMParser would.
+ *
+ * This is a blocklist, and stricter than the JS version: it also removes
+ * <base>, <frame> and SVG animation elements, and checks every URL-bearing
+ * attribute (not only href/src) for javascript: and vbscript: URLs.
  */
 class Sanitizer
 {
-    /** Tags that are always removed entirely. */
-    private const DANGEROUS_TAGS = ['script', 'iframe', 'object', 'embed', 'style', 'link', 'meta'];
+    /** Elements that are always removed entirely. */
+    private const DANGEROUS_TAGS = [
+        'script', 'iframe', 'object', 'embed', 'style', 'link', 'meta',
+        'base', 'frame', 'frameset',
+        // SVG animation can set href to a javascript: URL after sanitizing.
+        // SVG names are case-sensitive in selectors, hence the camelCase.
+        'animate', 'set', 'animateMotion', 'animateTransform',
+    ];
+
+    /** Attributes whose value is navigated to or loaded as a URL. */
+    private const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'xlink:href', 'data', 'poster', 'background', 'cite'];
 
     /**
-     * Sanitizes an HTML string by removing dangerous elements and attributes.
-     * Mirrors _sanitize() from NanoRenderer.js:
-     *   - Removes <script>, <iframe>, <object>, <embed>, <style>, <link>, <meta>
-     *   - Removes on* event attributes from all elements
-     *   - Removes href/src attributes whose value starts with javascript:
+     * Sanitizes an HTML string by removing dangerous elements and attributes:
+     *   - removes the elements in DANGEROUS_TAGS
+     *   - removes on* event attributes from all elements
+     *   - removes URL attributes that use the javascript: or vbscript: scheme
      *
      * @param string $html Raw HTML input.
      * @return string Sanitized HTML.
@@ -29,32 +44,24 @@ class Sanitizer
             return '';
         }
 
-        $doc = new \DOMDocument();
-        libxml_use_internal_errors(true);
-        // Wrap in a known charset so DOMDocument does not mangle UTF-8 characters.
-        $doc->loadHTML('<?xml encoding="UTF-8"><body>' . $html . '</body>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-        libxml_clear_errors();
-
-        $xpath = new \DOMXPath($doc);
-
-        // Remove dangerous tags.
-        foreach (self::DANGEROUS_TAGS as $tag) {
-            foreach (iterator_to_array($xpath->query('//' . $tag) ?: []) as $node) {
-                $node->parentNode?->removeChild($node);
-            }
+        $doc  = \Dom\HTMLDocument::createFromString('<!DOCTYPE html><body>' . $html, LIBXML_NOERROR, 'UTF-8');
+        $body = $doc->body;
+        if ($body === null) {
+            return '';
         }
 
-        // Remove on* attributes and javascript: href/src from all remaining elements.
-        foreach (iterator_to_array($xpath->query('//*') ?: []) as $el) {
-            /** @var \DOMElement $el */
+        foreach ($body->querySelectorAll(implode(',', self::DANGEROUS_TAGS)) as $node) {
+            $node->remove();
+        }
+
+        foreach ($body->querySelectorAll('*') as $el) {
             $to_remove = [];
             foreach ($el->attributes as $attr) {
-                if (str_starts_with($attr->name, 'on')) {
+                $name = strtolower($attr->name);
+                if (str_starts_with($name, 'on')
+                    || (in_array($name, self::URL_ATTRIBUTES, true) && self::is_script_url($attr->value))
+                ) {
                     $to_remove[] = $attr->name;
-                } elseif (in_array($attr->name, ['href', 'src'], true)) {
-                    if (str_starts_with(strtolower(trim($attr->value)), 'javascript:')) {
-                        $to_remove[] = $attr->name;
-                    }
                 }
             }
             foreach ($to_remove as $name) {
@@ -62,17 +69,20 @@ class Sanitizer
             }
         }
 
-        // Extract just the body content (strip the wrapper we added).
-        $body = $doc->getElementsByTagName('body')->item(0);
-        if ($body === null) {
-            return '';
-        }
+        return $body->innerHTML;
+    }
 
-        $result = '';
-        foreach ($body->childNodes as $child) {
-            $result .= $doc->saveHTML($child);
-        }
-
-        return $result;
+    /**
+     * Checks whether a URL would run script when followed. Browsers ignore
+     * whitespace and control characters inside the scheme ("java\tscript:"),
+     * so those are stripped before comparing.
+     *
+     * @param string $url Attribute value (entities already decoded by the parser).
+     * @return bool
+     */
+    private static function is_script_url(string $url): bool
+    {
+        $normalized = strtolower(preg_replace('/[\x00-\x20]+/', '', $url) ?? '');
+        return str_starts_with($normalized, 'javascript:') || str_starts_with($normalized, 'vbscript:');
     }
 }
