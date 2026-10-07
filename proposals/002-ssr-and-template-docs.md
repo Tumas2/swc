@@ -42,7 +42,7 @@ It describes the old package. Known errors and gaps:
 - `Sanitizer`: HTML5 parser, stricter than the JS version; `Sanitizer::safe_url()`
 - PHP `NanoRenderer`: `register_helper()`, `register_partial()`, `set_partial_resolver()` (sync, called on first use, result kept until the resolver is set again); same output as JS for the same template and data
 - **Resolver reset:** setting a resolver (PHP and JS) forgets every partial the previous one supplied and keeps explicitly registered ones. Call it again whenever the partial source changes (theme switch, tests with another app). JS drops answers that arrive after the resolver was replaced.
-- **Compiled-template cache:** `NanoRenderer::set_cache_dir($dir)` (off by default). Parsed templates are written once as PHP files named by a hash of the template text, so OPcache keeps them; edited templates get a new hash, old files can be deleted any time. The directory must not be writable by untrusted users. CMS benchmark before it: NanoRenderer 2.71–2.81 ms vs php-handlebars 2.63–2.70 ms per request; rerun pending.
+- **Compiled-template cache:** `NanoRenderer::set_cache_dir($dir)` (off by default). Parsed templates are written once as PHP files named by a hash of the template text, so OPcache keeps them; edited templates get a new hash, old files can be deleted any time. The directory must not be writable by untrusted users. CMS benchmark (blog page, 6 templates, 53-item loop, per request): php-handlebars 2.67–2.81 ms, NanoRenderer with cache 2.71–2.87 ms, without 2.75–2.91 ms — even within noise; peak memory 0.68 MB vs 0.79 MB. In isolation the cache cuts load+parse+render of those 6 templates from 0.43 to 0.27 ms.
 - **Gap warning:** `#each` over an array whose keys are all numbers but not 0..n (e.g. after `array_filter()`) renders nothing, like JS, and PHP warns once per path. Fix with `array_values()`.
 - Low-level use without components: `TemplateLoader::load()` + `new NanoRenderer()` (how the CMS renders blocks)
 - Static registries: fine under FPM; long-lived workers must re-register per-request helpers
@@ -74,4 +74,5 @@ Behaviour that changed for existing users:
 
 - `test/portfolio-ssr/index.php` fails fatally (hard-coded class include list), and its components use `component.json`, so nothing is discovered anyway.
 - JS `_sanitize()` has the holes the PHP one had (`formaction`, `action`, `xlink:href`, SVG animation, tab inside `javascript:`). `{{{safe}}}` output now differs between JS and PHP for malicious input only.
-- The compiled-template cache needs a rerun of the CMS benchmark (A/C) to confirm the gain.
+- **Idea, not needed yet:** a file-based entry point (`render_file($path, $data)`, cache keyed by real path + modification time) would skip reading and hashing each template on cache hits (~0.13 ms for 6 templates outside OPcache). Worth it only if templates with heavy partials show it.
+- **Idea:** `swc.php` loads all eight classes on every request. An `spl_autoload_register` loader in it would load only what is used (the CMS switched to PSR-4 for this reason).
