@@ -28,6 +28,7 @@ $parity_cases = [
     'arrays and objects'    => ['{{arr}}|{{obj}}|{{{arr}}}', '{"arr":[1,[2,3],null],"obj":{"a":1}}'],
     'top-level this'        => ['{{this}}', '{"a":1}'],
     'escaping'              => ['{{s}}', '{"s":"<a href=\'/x\'>&\"</a>"}'],
+    'slash is not escaped'  => ['<a href="{{u}}">{{u}}</a>|{{url u}}', '{"u":"https://x.y/a/b"}'],
     'fallbacks'             => ['{{missing || "dflt"}}|{{{nothing || \'raw\'}}}|{{n || "x"}}', '{"n":null}'],
     'raw'                   => ['{{{html}}}', '{"html":"<b>x</b>"}'],
     'deep missing'          => ['{{#if o.a.b}}y{{else}}n{{/if}}{{o.a.b}}', '{"o":{}}'],

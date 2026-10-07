@@ -5,7 +5,7 @@ import { StatefulElement } from "./StatefulElement.js";
 // ---------------------------------------------------------------------------
 
 /** @type {Record<string, string>} */
-const _ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;', '/': '&#x2F;' };
+const _ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
 
 /**
  * Escapes a value for safe HTML text output.
@@ -13,7 +13,7 @@ const _ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"':
  * @returns {string}
  */
 function _escape(str) {
-    return String(str ?? '').replace(/[&<>'"\/]/g, c => _ESCAPE_MAP[c]);
+    return String(str ?? '').replace(/[&<>'"]/g, c => _ESCAPE_MAP[c]);
 }
 
 /** @type {DOMParser | null} */

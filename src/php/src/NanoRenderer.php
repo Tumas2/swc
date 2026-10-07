@@ -19,7 +19,7 @@ namespace SWC;
  *   - {{#each}} only loops over lists; associative arrays and objects are
  *     JS objects, so they render the {{else}} branch
  *   - .length works on lists and strings
- *   - escaping uses the same character map, including / → &#x2F;
+ *   - escaping uses the same character map (& < > " ', not /)
  *   - a template with unbalanced blocks renders as an empty string
  *
  * Data may be arrays, stdClass objects (e.g. from json_decode() without
@@ -49,7 +49,7 @@ namespace SWC;
 class NanoRenderer
 {
     /** Same map as _ESCAPE_MAP in NanoRenderer.js. */
-    private const ESCAPE_MAP = ['&' => '&amp;', '<' => '&lt;', '>' => '&gt;', "'" => '&#39;', '"' => '&quot;', '/' => '&#x2F;'];
+    private const ESCAPE_MAP = ['&' => '&amp;', '<' => '&lt;', '>' => '&gt;', "'" => '&#39;', '"' => '&quot;'];
 
     /**
      * Parsed AST cache keyed by template string, shared by every instance —
