@@ -20,24 +20,49 @@ function _escape(str) {
 let _domParser = null;
 
 /**
- * Sanitizes an HTML string by stripping dangerous tags and event attributes.
+ * Elements {{{safe}}} always removes. SVG names are case-sensitive in
+ * selectors, hence the camelCase. Same list as Sanitizer.php.
+ */
+const _DANGEROUS_TAGS = [
+    'script', 'iframe', 'object', 'embed', 'style', 'link', 'meta',
+    'base', 'frame', 'frameset',
+    // SVG animation can set href to a javascript: URL after sanitizing.
+    'animate', 'set', 'animateMotion', 'animateTransform',
+];
+
+/** Attributes whose value is navigated to or loaded as a URL. Same list as Sanitizer.php. */
+const _URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'xlink:href', 'data', 'poster', 'background', 'cite'];
+
+/**
+ * Checks whether a URL would run script when followed. Browsers ignore
+ * whitespace and control characters inside the scheme ("java\tscript:").
+ * @param {string} url Attribute value (entities already decoded by the parser).
+ * @returns {boolean}
+ */
+function _isScriptUrl(url) {
+    const normalized = url.replace(/[\x00-\x20]+/g, '').toLowerCase();
+    return normalized.startsWith('javascript:') || normalized.startsWith('vbscript:');
+}
+
+/**
+ * Sanitizes an HTML string for {{{safe}}} output: removes dangerous elements,
+ * on* event attributes, and URL attributes using javascript: or vbscript:.
+ * Same rules as Sanitizer::clean() in the PHP package.
  * @param {string} str
  * @returns {string}
  */
 function _sanitize(str) {
     if (!_domParser) _domParser = new DOMParser();
-    const doc = _domParser.parseFromString(str || '', 'text/html');
-    ['script', 'iframe', 'object', 'embed', 'style', 'link', 'meta'].forEach(tag =>
-        doc.querySelectorAll(tag).forEach(el => el.remove())
-    );
-    doc.querySelectorAll('*').forEach(el => {
-        Array.from(el.attributes).forEach(attr => {
-            if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-            if ((attr.name === 'href' || attr.name === 'src') &&
-                attr.value.trim().toLowerCase().startsWith('javascript:')) {
+    // The <body> prefix keeps leading elements (e.g. <title>) in the body, as in Sanitizer.php.
+    const doc = _domParser.parseFromString('<!DOCTYPE html><body>' + (str || ''), 'text/html');
+    doc.body.querySelectorAll(_DANGEROUS_TAGS.join(',')).forEach(el => el.remove());
+    doc.body.querySelectorAll('*').forEach(el => {
+        for (const attr of Array.from(el.attributes)) {
+            const name = attr.name.toLowerCase();
+            if (name.startsWith('on') || (_URL_ATTRIBUTES.includes(name) && _isScriptUrl(attr.value))) {
                 el.removeAttribute(attr.name);
             }
-        });
+        }
     });
     return doc.body.innerHTML;
 }
