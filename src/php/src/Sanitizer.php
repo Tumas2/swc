@@ -26,6 +26,9 @@ class Sanitizer
         'animate', 'set', 'animateMotion', 'animateTransform',
     ];
 
+    /** Schemes safe_url() lets through. */
+    private const SAFE_URL_SCHEMES = ['http', 'https', 'mailto', 'tel'];
+
     /** Attributes whose value is navigated to or loaded as a URL. */
     private const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'xlink:href', 'data', 'poster', 'background', 'cite'];
 
@@ -70,6 +73,26 @@ class Sanitizer
         }
 
         return $body->innerHTML;
+    }
+
+    /**
+     * Returns the URL unchanged when it is safe to put in href/src, otherwise "#".
+     * Safe means no scheme (relative paths, //host, #frag, ?query) or one of
+     * SAFE_URL_SCHEMES. Whitespace and control characters are ignored when
+     * reading the scheme, because browsers drop them ("java\tscript:" runs
+     * as javascript:). This is the built-in {{url}} helper, and the same
+     * rules as safeUrl() in NanoRenderer.js.
+     *
+     * @param string $url
+     * @return string
+     */
+    public static function safe_url(string $url): string
+    {
+        $normalized = strtolower(preg_replace('/[\x00-\x20]+/', '', $url) ?? '');
+        if (!preg_match('/^([a-z][a-z0-9+.\-]*):/', $normalized, $m)) {
+            return $url;
+        }
+        return in_array($m[1], self::SAFE_URL_SCHEMES, true) ? $url : '#';
     }
 
     /**

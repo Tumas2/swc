@@ -76,6 +76,75 @@ function _get(stack, parts) {
     return parts.reduce((obj, key) => (obj && obj[key] !== undefined) ? obj[key] : undefined, ctx);
 }
 
+/** Schemes {{url}} lets through. Anything without a scheme (relative, //host) passes too. */
+const _SAFE_URL_SCHEMES = ['http', 'https', 'mailto', 'tel'];
+
+/**
+ * Returns the URL unchanged when it is safe to put in href/src, otherwise "#".
+ * Whitespace and control characters are ignored when reading the scheme,
+ * because browsers drop them ("java\tscript:" runs as javascript:).
+ * Same rules as Sanitizer::safe_url() in the PHP package.
+ * @param {*} value
+ * @returns {string}
+ */
+export function safeUrl(value) {
+    const url = String(value ?? '');
+    const scheme = url.replace(/[\x00-\x20]+/g, '').toLowerCase().match(/^([a-z][a-z0-9+.\-]*):/);
+    return !scheme || _SAFE_URL_SCHEMES.includes(scheme[1]) ? url : '#';
+}
+
+/**
+ * Registered helpers, shared by every renderer like the compiled-template cache.
+ * @type {Map<string, Function>}
+ */
+const _helpers = new Map([['url', safeUrl]]);
+
+/** @type {Set<string>} Unknown helper names already reported, so loops don't flood the console. */
+const _reportedHelpers = new Set();
+
+/**
+ * Calls a helper at render time. Unknown helpers and helpers that throw
+ * render as an empty string, with a console message.
+ * @param {string} name
+ * @param {Array<*>} args
+ * @returns {*}
+ */
+function _callHelper(name, args) {
+    const helper = _helpers.get(name);
+    if (!helper) {
+        if (!_reportedHelpers.has(name)) {
+            _reportedHelpers.add(name);
+            console.warn(`NanoRenderer: unknown helper "${name}"`);
+        }
+        return undefined;
+    }
+    try {
+        return helper(...args);
+    } catch (e) {
+        console.error(`NanoRenderer: helper "${name}" threw:`, e);
+        return undefined;
+    }
+}
+
+/** Valid helper names. A tag whose first word isn't one stays a plain lookup. */
+const _HELPER_NAME_RE = /^[A-Za-z_][\w-]*$/;
+
+/**
+ * Splits helper arguments into literals and paths:
+ * "strings" or 'strings', numbers, true/false/null, and dot paths.
+ * @param {string} str
+ * @returns {Array<{literal: *} | {path: string[]}>}
+ */
+function _parseArgs(str) {
+    return [...str.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map(([, dq, sq, word]) => {
+        if (dq !== undefined) return { literal: dq };
+        if (sq !== undefined) return { literal: sq };
+        if (/^-?\d+(\.\d+)?$/.test(word)) return { literal: Number(word) };
+        if (word === 'true' || word === 'false' || word === 'null') return { literal: JSON.parse(word) };
+        return { path: word.split('.') };
+    });
+}
+
 // ---------------------------------------------------------------------------
 // NanoRenderer
 // ---------------------------------------------------------------------------
@@ -88,6 +157,23 @@ export class NanoRenderer {
     constructor() {
         this.cache = new Map();
         this.render = this.render.bind(this);
+    }
+
+    /**
+     * Registers a helper for every renderer, callable as {{name arg1 arg2}}
+     * (escaped) or {{{name arg1}}} (raw). Arguments are positional: strings,
+     * numbers, true/false/null, or paths. A tag with arguments is always a
+     * helper call; a tag without arguments is always a data lookup.
+     * Registering an existing name (including the built-in `url`) replaces it.
+     * Components that render on the server too need the same helper
+     * registered in PHP (NanoRenderer::register_helper).
+     * @param {string} name
+     * @param {Function} fn Receives the evaluated arguments; its return value is output.
+     */
+    static registerHelper(name, fn) {
+        if (!_HELPER_NAME_RE.test(name)) throw new Error(`NanoRenderer: invalid helper name "${name}"`);
+        _helpers.set(name, fn);
+        _reportedHelpers.delete(name);
     }
 
     /**
@@ -125,6 +211,25 @@ export class NanoRenderer {
 
         // Helper: convert a dot-path string to a JSON array literal for get()
         const getPath = (str) => JSON.stringify(str.split('.'));
+
+        // Builds the JS expression for an output tag's value:
+        //   path || 'fallback'  →  the fallback replaces null/undefined
+        //   name arg1 arg2      →  helper call (a tag with arguments)
+        //   path                →  plain lookup
+        const valueExpr = (expr) => {
+            const fallbackMatch = expr.match(/^(.*?)\s*\|\|\s*(["'])(.*?)\2$/);
+            if (fallbackMatch) {
+                return `(get(${getPath(fallbackMatch[1].trim())}) ?? ${JSON.stringify(fallbackMatch[3])})`;
+            }
+            const call = expr.match(/^(\S+)\s+(\S[\s\S]*)$/);
+            if (call && _HELPER_NAME_RE.test(call[1])) {
+                const args = _parseArgs(call[2]).map(arg =>
+                    'literal' in arg ? JSON.stringify(arg.literal) : `get(${JSON.stringify(arg.path)})`
+                );
+                return `(_helper(${JSON.stringify(call[1])}, [${args.join(', ')}]) ?? '')`;
+            }
+            return `(get(${getPath(expr)}) ?? '')`;
+        };
 
         // Reports a malformed template; compile() then renders ''.
         const fail = (message) => {
@@ -193,41 +298,16 @@ export class NanoRenderer {
                         code += `}\n`; // close outer scope
                     }
 
-                } else if (isTriple) {
-                    // {{{ unescaped }}} or {{{ safe unescaped }}}
-                    let raw = trimmed;
-                    let isSafe = false;
-
-                    if (raw.startsWith('safe ')) {
-                        isSafe = true;
-                        raw = raw.substring(5).trim();
-                    }
-
-                    const fallbackMatch = raw.match(/^(.*?)\s*\|\|\s*(["'])(.*?)\2$/);
-                    let valExpr, fallback;
-
-                    if (fallbackMatch) {
-                        valExpr = `get(${getPath(fallbackMatch[1].trim())})`;
-                        fallback = JSON.stringify(fallbackMatch[3]);
-                    } else {
-                        valExpr = `get(${getPath(raw)})`;
-                        fallback = "''";
-                    }
-
-                    code += isSafe
-                        ? `out += _sanitize(${valExpr} ?? ${fallback});\n`
-                        : `out += (${valExpr} ?? ${fallback});\n`;
-
                 } else {
-                    // {{ escaped }}
-                    const fallbackMatch = trimmed.match(/^(.*?)\s*\|\|\s*(["'])(.*?)\2$/);
-                    if (fallbackMatch) {
-                        const valExpr = `get(${getPath(fallbackMatch[1].trim())})`;
-                        const fallback = JSON.stringify(fallbackMatch[3]);
-                        code += `out += _escape(${valExpr} ?? ${fallback});\n`;
-                    } else {
-                        code += `out += _escape(get(${getPath(trimmed)}) ?? '');\n`;
-                    }
+                    // {{ escaped }}, {{{ unescaped }}} or {{{ safe unescaped }}}
+                    let expr = trimmed;
+                    const isSafe = isTriple && expr.startsWith('safe ');
+                    if (isSafe) expr = expr.substring(5).trim();
+
+                    const valExpr = valueExpr(expr);
+                    if (isSafe) code += `out += _sanitize(${valExpr});\n`;
+                    else if (isTriple) code += `out += (${valExpr});\n`;
+                    else code += `out += _escape(${valExpr});\n`;
                 }
             }
         }
@@ -242,9 +322,9 @@ export class NanoRenderer {
 
         try {
             // Pass module-level helpers as parameters — no per-function copies
-            const fn = new Function('data', '_escape', '_sanitize', '_get', code);
+            const fn = new Function('data', '_escape', '_sanitize', '_get', '_helper', code);
             // Wrap so the public API is simply fn(data)
-            const bound = (data) => fn(data, _escape, _sanitize, _get);
+            const bound = (data) => fn(data, _escape, _sanitize, _get, _callHelper);
             this.cache.set(template, bound);
             return bound;
         } catch (e) {

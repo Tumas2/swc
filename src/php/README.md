@@ -2,7 +2,7 @@
 
 Server-side rendering for [SWC (Stateful Web Components)](../../../../README.md). Renders components as [Declarative Shadow DOM](https://developer.chrome.com/docs/css-ui/declarative-shadow-dom) so content is visible before JavaScript loads — zero flicker when JS hydrates.
 
-**Requirements:** PHP ≥ 8.5, `ext-dom`
+**Requirements:** PHP ≥ 8.4, `ext-dom`
 
 ## Classes
 

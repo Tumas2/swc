@@ -15,6 +15,13 @@ console.warn = () => {};
 
 const { NanoRenderer } = await import(new URL('../../js/NanoRenderer.js', import.meta.url));
 
+// Test helpers — registered identically in nano-renderer.php.
+NanoRenderer.registerHelper('echo', (value) => value);
+NanoRenderer.registerHelper('upper', (value) => String(value).toUpperCase());
+NanoRenderer.registerHelper('join', (...args) => args.join('-'));
+NanoRenderer.registerHelper('count', (...args) => args.length);
+NanoRenderer.registerHelper('boom', () => { throw new Error('boom'); });
+
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
 

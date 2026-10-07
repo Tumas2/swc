@@ -64,7 +64,37 @@ $parity_cases = [
     'index and @index'      => ['{{#each l}}{{index}}={{@index}} {{/each}}', '{"l":["a","b"]}'],
     '@ vars outside loop'   => ['[{{@index}}{{@first}}]', '{}'],
     'item keys stay'        => ['{{#each l}}{{name}}{{index}}{{/each}}', '{"l":[{"name":"n","index":"own"}]}'],
+
+    // Helpers (test helpers are registered identically in js-render.mjs)
+    'helper string literals'  => ['{{upper "a b"}}|{{upper \'c d\'}}', '{}'],
+    'helper path argument'    => ['{{upper name}}', '{"name":"ann"}'],
+    'helper mixed arguments'  => ['{{join a "b c" 3 -1}}', '{"a":"x"}'],
+    'helper argument count'   => ['{{count "a b" \'c\' d 4}}', '{}'],
+    'helper literals'         => ['{{echo true}}|{{echo false}}|{{echo null}}|{{echo 1.50}}|{{echo 007}}|{{echo -0}}', '{}'],
+    'helper returns list/obj' => ['{{echo l}}|{{echo o}}', '{"l":[1,2],"o":{"a":1}}'],
+    'helper escaped vs raw'   => ['{{echo h}}|{{{echo h}}}', '{"h":"<b>&</b>"}'],
+    'helper missing path'     => ['[{{echo nope}}]', '{}'],
+    'helper in loop'          => ['{{#each l}}{{upper this}}{{echo @index}};{{/each}}', '{"l":["a","b"]}'],
+    'unknown helper'          => ['[{{nope x}}]', '{}'],
+    'throwing helper'         => ['[{{boom x}}]', '{}'],
+    'no arguments is data'    => ['{{url}}|{{echo}}', '{"url":"javascript:x","echo":"E"}'],
+    'fallback beats helper'   => ['{{echo x || "d"}}', '{}'],
+    'non-name stays lookup'   => ['{{a.b c}}', '{"a":{"b c":"k"}}'],
+
+    // Built-in url helper
+    'url safe'                => ['{{#each u}}{{url this}}|{{/each}}', '{"u":["https://x.y/a?b=1&c=2","http://x","mailto:a@b.c","tel:+461","/rel/path","rel/path","//host/x","#frag","?q=1","","/foo:bar","  https://x"]}'],
+    'url hostile'             => ['{{#each u}}{{url this}}|{{/each}}', '{"u":["javascript:alert(1)","JaVaScRiPt:alert(1)"," javascript:x","java\tscript:x","java\nscript:x","java\r\nscript:x","\u0001javascript:x","javascript\u0000:x","vbscript:x","data:text/html,x","ftp://x","file:///etc","c:\\\\path"]}'],
+    'url non-strings'         => ['[{{url missing}}][{{url 5}}][{{url true}}]', '{}'],
+    'url in attribute'        => ['<a href="{{url link}}">{{text}}</a>', '{"link":"javascript:alert(1)","text":"x"}'],
+    'url same name as data'   => ['{{#if url}}<img src="{{url url}}">{{/if}}', '{"url":"/img/a.png"}'],
 ];
+
+// Test helpers — registered identically in js-render.mjs.
+NanoRenderer::register_helper('echo', fn(mixed $value = null): mixed => $value);
+NanoRenderer::register_helper('upper', fn(mixed $value = null): string => strtoupper((string) $value));
+NanoRenderer::register_helper('join', fn(mixed ...$args): string => implode('-', array_map(fn($a) => (string) $a, $args)));
+NanoRenderer::register_helper('count', fn(mixed ...$args): int => count($args));
+NanoRenderer::register_helper('boom', fn(): never => throw new RuntimeException('boom'));
 
 Test::section('NanoRenderer — parity with NanoRenderer.js');
 

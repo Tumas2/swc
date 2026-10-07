@@ -40,6 +40,8 @@ namespace SWC;
  *   {{index}} / {{@index}}        current loop index (0-based)
  *   {{@first}} / {{@last}}        true on the first / last item of the loop
  *   {{! note }} {{!-- note --}}   comments, no output
+ *   {{name arg "str" 2}}          helper call (escaped); {{{name arg}}} raw
+ *   {{url link}}                  built-in helper: link if its scheme is safe, otherwise "#"
  *   nested {{#each}}              context stack — inner this shadows outer this
  */
 class NanoRenderer
@@ -60,9 +62,43 @@ class NanoRenderer
     /** Marks a property that does not exist (JavaScript's undefined). */
     private static ?object $undefined = null;
 
+    /** Valid helper names. A tag whose first word isn't one stays a plain lookup. */
+    private const HELPER_NAME_RE = '/^[A-Za-z_][\w-]*$/';
+
+    /** @var array<string, callable>|null Registered helpers, shared by every instance. Built lazily with the built-ins. */
+    private static ?array $helpers = null;
+
+    /** @var array<string, bool> Unknown helper names already reported, so loops don't flood the log. */
+    private static array $reported_helpers = [];
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
+
+    /**
+     * Registers a helper for every renderer, callable as {{name arg1 arg2}}
+     * (escaped) or {{{name arg1}}} (raw). Arguments are positional: strings,
+     * numbers, true/false/null, or paths (missing paths arrive as null). A tag
+     * with arguments is always a helper call; a tag without arguments is
+     * always a data lookup. Registering an existing name (including the
+     * built-in `url`) replaces it.
+     *
+     * Helpers used by components that hydrate in the browser must be
+     * registered in JS too (NanoRenderer.registerHelper), with the same output.
+     *
+     * @param string   $name
+     * @param callable $callback Receives the evaluated arguments; its return value is output.
+     * @throws \InvalidArgumentException On an invalid name.
+     */
+    public static function register_helper(string $name, callable $callback): void
+    {
+        if (!preg_match(self::HELPER_NAME_RE, $name)) {
+            throw new \InvalidArgumentException("SWC NanoRenderer: invalid helper name '{$name}'");
+        }
+        self::helpers();
+        self::$helpers[$name] = $callback;
+        unset(self::$reported_helpers[$name]);
+    }
 
     /**
      * Renders a template string against a data array or object.
@@ -186,8 +222,7 @@ class NanoRenderer
                 }
             }
 
-            [$path, $fallback] = $this->parse_fallback($raw);
-            $nodes[] = ['type' => $kind, 'path' => $path, 'fallback' => $fallback];
+            $nodes[] = ['type' => $kind] + $this->parse_value($raw);
         }
 
         if ($closer !== null) {
@@ -198,18 +233,97 @@ class NanoRenderer
     }
 
     /**
-     * Parses a possible fallback expression: "expr || 'default'".
-     * Returns [path_parts[], fallback_string].
+     * Parses an output tag's expression, in the same order as valueExpr() in
+     * NanoRenderer.js:
+     *   path || 'fallback'  →  ['path' => [...], 'fallback' => '...']
+     *   name arg1 arg2      →  ['helper' => 'name', 'args' => [...]]  (a tag with arguments)
+     *   path                →  ['path' => [...], 'fallback' => '']
      *
      * @param string $expr
-     * @return array{0: string[], 1: string}
+     * @return array
      */
-    private function parse_fallback(string $expr): array
+    private function parse_value(string $expr): array
     {
         if (preg_match('/^(.*?)\s*\|\|\s*(["\'])(.*?)\2$/u', $expr, $m)) {
-            return [explode('.', trim($m[1])), $m[3]];
+            return ['path' => explode('.', trim($m[1])), 'fallback' => $m[3]];
         }
-        return [explode('.', $expr), ''];
+
+        if (preg_match('/^(\S+)\s+(\S[\s\S]*)$/', $expr, $m) && preg_match(self::HELPER_NAME_RE, $m[1])) {
+            return ['helper' => $m[1], 'args' => $this->parse_args($m[2])];
+        }
+
+        return ['path' => explode('.', $expr), 'fallback' => ''];
+    }
+
+    /**
+     * Splits helper arguments into literals and paths, like _parseArgs() in
+     * NanoRenderer.js: "strings" or 'strings', numbers, true/false/null, and
+     * dot paths.
+     *
+     * @param string $str
+     * @return array<array{literal: mixed}|array{path: string[]}>
+     */
+    private function parse_args(string $str): array
+    {
+        preg_match_all('/"([^"]*)"|\'([^\']*)\'|(\S+)/', $str, $matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL);
+
+        $args = [];
+        foreach ($matches as $m) {
+            $word   = $m[3];
+            $args[] = match (true) {
+                $m[1] !== null => ['literal' => $m[1]],
+                $m[2] !== null => ['literal' => $m[2]],
+                (bool) preg_match('/^-?\d+(\.\d+)?$/', $word) => ['literal' => str_contains($word, '.') ? (float) $word : (int) $word],
+                $word === 'true'  => ['literal' => true],
+                $word === 'false' => ['literal' => false],
+                $word === 'null'  => ['literal' => null],
+                default => ['path' => explode('.', $word)],
+            };
+        }
+        return $args;
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the helper registry, creating it with the built-ins on first use.
+     *
+     * @return array<string, callable>
+     */
+    private static function helpers(): array
+    {
+        return self::$helpers ??= [
+            'url' => static fn(mixed $value = null): string => Sanitizer::safe_url(self::to_js_string($value)),
+        ];
+    }
+
+    /**
+     * Calls a helper at render time. Unknown helpers and helpers that throw
+     * produce null, with a warning (once per unknown name).
+     *
+     * @param string $name
+     * @param array  $args Evaluated arguments.
+     * @return mixed
+     */
+    private function call_helper(string $name, array $args): mixed
+    {
+        $helper = self::helpers()[$name] ?? null;
+        if ($helper === null) {
+            if (!isset(self::$reported_helpers[$name])) {
+                self::$reported_helpers[$name] = true;
+                trigger_error("SWC NanoRenderer: unknown helper '{$name}'", E_USER_WARNING);
+            }
+            return null;
+        }
+
+        try {
+            return $helper(...$args);
+        } catch (\Throwable $e) {
+            trigger_error("SWC NanoRenderer: helper '{$name}' threw: " . $e->getMessage(), E_USER_WARNING);
+            return null;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -235,18 +349,18 @@ class NanoRenderer
                     break;
 
                 case 'var':
-                    $val  = $this->get($stack, $node['path']) ?? $node['fallback'];
-                    $out .= strtr($this->to_js_string($val), self::ESCAPE_MAP);
+                    $val  = $this->value($stack, $node);
+                    $out .= strtr(self::to_js_string($val), self::ESCAPE_MAP);
                     break;
 
                 case 'raw':
-                    $out .= $this->to_js_string($this->get($stack, $node['path']) ?? $node['fallback']);
+                    $out .= self::to_js_string($this->value($stack, $node));
                     break;
 
                 case 'safe':
                     // JS: _sanitize(str) parses `str || ''`, so falsy values render nothing.
-                    $val  = $this->get($stack, $node['path']) ?? $node['fallback'];
-                    $out .= $this->is_truthy($val) ? Sanitizer::clean($this->to_js_string($val)) : '';
+                    $val  = $this->value($stack, $node);
+                    $out .= $this->is_truthy($val) ? Sanitizer::clean(self::to_js_string($val)) : '';
                     break;
 
                 case 'if':
@@ -283,6 +397,27 @@ class NanoRenderer
         }
 
         return $out;
+    }
+
+    /**
+     * Evaluates an output node's value: a helper call, or a path lookup with
+     * its fallback (used when the value is null, like JS `??`).
+     *
+     * @param array $stack
+     * @param array $node A var/raw/safe node from parse_value().
+     * @return mixed
+     */
+    private function value(array $stack, array $node): mixed
+    {
+        if (isset($node['helper'])) {
+            $args = array_map(
+                fn(array $arg): mixed => array_key_exists('literal', $arg) ? $arg['literal'] : $this->get($stack, $arg['path']),
+                $node['args']
+            );
+            return $this->call_helper($node['helper'], $args);
+        }
+
+        return $this->get($stack, $node['path']) ?? $node['fallback'];
     }
 
     // -------------------------------------------------------------------------
@@ -420,16 +555,16 @@ class NanoRenderer
      * @param mixed $value
      * @return string
      */
-    private function to_js_string(mixed $value): string
+    private static function to_js_string(mixed $value): string
     {
         return match (true) {
             $value === null  => '',
             is_bool($value)  => $value ? 'true' : 'false',
             is_int($value)   => (string) $value,
-            is_float($value) => $this->js_number($value),
+            is_float($value) => self::js_number($value),
             is_string($value) => $value,
             is_array($value) => array_is_list($value)
-                ? implode(',', array_map($this->to_js_string(...), $value))
+                ? implode(',', array_map(self::to_js_string(...), $value))
                 : '[object Object]',
             $value instanceof \Stringable => (string) $value,
             default          => '[object Object]',
@@ -444,7 +579,7 @@ class NanoRenderer
      * @param float $value
      * @return string
      */
-    private function js_number(float $value): string
+    private static function js_number(float $value): string
     {
         if (is_nan($value)) {
             return 'NaN';

@@ -2,7 +2,7 @@
 
 The PHP package renders SWC components server-side as [Declarative Shadow DOM](https://developer.chrome.com/docs/css-ui/declarative-shadow-dom). Content is visible before JavaScript loads — when JS arrives, `morph()` reconciles the DOM and the result is a no-op.
 
-**Requirements:** PHP ≥ 8.5, `ext-dom`
+**Requirements:** PHP ≥ 8.4, `ext-dom`
 
 ---
 

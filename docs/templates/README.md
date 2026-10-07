@@ -111,6 +111,30 @@ Templates receive the merged state from all stores (keyed by their store name) p
 {{ user.status || "Offline" }}      — fallback value
 ```
 
+**Helpers**
+
+A tag with arguments calls a helper; a tag without arguments is always a data lookup, so a helper never hides a value of the same name.
+
+```html
+<a href="{{ url link }}">{{ label }}</a>          — built-in: link if safe, otherwise "#"
+{{ t "Read more" }}                              — a helper you registered
+{{{ icon "arrow" 16 }}}                          — raw output of a helper
+```
+
+Arguments are positional: `"strings"` or `'strings'`, numbers, `true`/`false`/`null`, and paths (`user.name`, `this`, `@index`). There are no named arguments, and helpers can't be used inside `{{#if}}` or `{{#each}}`; compute such values in `computed()` instead.
+
+Register helpers once, before rendering. They are shared by every component:
+
+```js
+import { NanoRenderer } from 'swc';
+
+NanoRenderer.registerHelper('t', (key) => translations[key] ?? key);
+```
+
+The built-in `url` helper returns the URL unchanged if it has no scheme (relative paths, `//host`, `#frag`, `?query`) or uses `http`, `https`, `mailto` or `tel`; anything else (`javascript:`, `data:`, …) becomes `#`. Whitespace and control characters are ignored when reading the scheme, so `java\tscript:` is caught too. `{{ var }}` escaping alone does not make a URL safe in `href` or `src` — use `{{ url var }}`. The same check is exported as `safeUrl()`.
+
+An unknown helper, or one that throws, outputs nothing and logs a warning. Components rendered on the server need the same helpers registered in PHP (`NanoRenderer::register_helper()`), producing the same output.
+
 **Conditionals**
 
 ```html
