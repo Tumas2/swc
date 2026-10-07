@@ -119,19 +119,38 @@ Templates receive the merged state from all stores (keyed by their store name) p
 {{else}}
     <p>Please log in.</p>
 {{/if}}
+
+{{#unless cart.items.length}}
+    <p>Your cart is empty.</p>
+{{/unless}}
 ```
+
+Truthiness follows JavaScript: `0`, `""`, `null`, `false` and missing values are false; everything else is true — including `"0"` and an empty array. Test a list with `.length` (`{{#if items.length}}`).
 
 **Loops**
 
-Iterates over an array. Inside the block, use `{{ this.property }}` for the current item and `{{ index }}` for the zero-based position.
+Iterates over an array. Inside the block, use `{{ this.property }}` for the current item and `{{ index }}` (or `{{ @index }}`) for the zero-based position. `{{ @first }}` and `{{ @last }}` are true on the first and last item.
 
 ```html
 <ul>
     {{#each cart.items}}
-        <li>{{ this.name }} — ${{ this.price }}</li>
+        <li>{{ this.name }} — ${{ this.price }}{{#unless @last}},{{/unless}}</li>
+    {{else}}
+        <li>No items.</li>
     {{/each}}
 </ul>
 ```
+
+Names that aren't found on the current item are looked up in the outer context, so `{{ currency }}` inside the loop finds a top-level `currency`. A loop item with a key of the same name shadows the outer value.
+
+**Comments**
+
+```html
+{{! short comment }}
+{{!-- long comment, may contain }} --}}
+```
+
+Comments produce no output.
 
 ### Keeping identity with `key`
 

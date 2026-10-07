@@ -33,10 +33,13 @@ namespace SWC;
  *   {{#if cond}}...{{/if}}        conditional
  *   {{#if cond}}...{{else}}...{{/if}}  with else branch
  *   {{#each list}}...{{/each}}    loop
+ *   {{#unless cond}}...{{else}}...{{/unless}}  inverse conditional
  *   {{#each list}}...{{else}}...{{/each}}  loop with empty-list fallback
  *   {{this}}                      current loop item
  *   {{this.prop}}                 property of current item
- *   {{index}}                     current loop index (0-based)
+ *   {{index}} / {{@index}}        current loop index (0-based)
+ *   {{@first}} / {{@last}}        true on the first / last item of the loop
+ *   {{! note }} {{!-- note --}}   comments, no output
  *   nested {{#each}}              context stack — inner this shadows outer this
  */
 class NanoRenderer
@@ -92,9 +95,9 @@ class NanoRenderer
      */
     private function compile(string $template): ?array
     {
-        // Same regex as NanoRenderer.js — triple braces first so they are not
-        // swallowed by the double-brace branch.
-        $tokens = preg_split('/((?:{{{[\s\S]*?}}})|(?:{{[\s\S]*?}}))/u', $template, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [];
+        // Same regex as NanoRenderer.js — long comments first (they may contain
+        // "}}"), then triple braces so they are not swallowed by double braces.
+        $tokens = preg_split('/((?:{{!--[\s\S]*?--}})|(?:{{{[\s\S]*?}}})|(?:{{[\s\S]*?}}))/u', $template, -1, PREG_SPLIT_DELIM_CAPTURE) ?: [];
         $pos    = 0;
 
         try {
@@ -131,6 +134,10 @@ class NanoRenderer
                 continue;
             }
 
+            if (str_starts_with($token, '{{!')) {
+                continue; // {{! comment }} and {{!-- comment --}} produce no output.
+            }
+
             $is_triple = str_starts_with($token, '{{{');
             $trimmed   = trim($is_triple ? substr($token, 3, -3) : substr($token, 2, -2));
             $parts     = preg_split('/\s+/', $trimmed);
@@ -144,14 +151,14 @@ class NanoRenderer
                 return ['nodes' => $nodes, 'stopped_by' => 'else'];
             }
 
-            if ($type === '/if' || $type === '/each') {
+            if ($type === '/if' || $type === '/unless' || $type === '/each') {
                 if ($type !== $closer) {
                     throw new \UnexpectedValueException("unexpected {{{$type}}}");
                 }
                 return ['nodes' => $nodes, 'stopped_by' => $type];
             }
 
-            if ($type === '#if' || $type === '#each') {
+            if ($type === '#if' || $type === '#unless' || $type === '#each') {
                 $block_closer  = '/' . substr($type, 1);
                 $result        = $this->parse_block($tokens, $pos, $block_closer, true);
                 $else_children = null;
@@ -243,7 +250,9 @@ class NanoRenderer
                     break;
 
                 case 'if':
-                    if ($this->is_truthy($this->get($stack, $node['path']))) {
+                case 'unless':
+                    $truthy = $this->is_truthy($this->get($stack, $node['path']));
+                    if ($truthy === ($node['type'] === 'if')) {
                         $out .= $this->execute($node['children'], $stack);
                     } elseif ($node['else'] !== null) {
                         $out .= $this->execute($node['else'], $stack);
@@ -253,11 +262,15 @@ class NanoRenderer
                 case 'each':
                     $list = $this->get($stack, $node['path']);
                     if (is_array($list) && $list !== [] && array_is_list($list)) {
+                        $last = count($list) - 1;
                         foreach ($list as $index => $item) {
-                            // Mirror JS: spread object items, then add `this` and `index`.
-                            $frame          = is_array($item) ? $item : (is_object($item) ? get_object_vars($item) : []);
-                            $frame['this']  = $item;
-                            $frame['index'] = $index;
+                            // Mirror JS: spread object items, then add `this`, `index` and the @ variables.
+                            $frame           = is_array($item) ? $item : (is_object($item) ? get_object_vars($item) : []);
+                            $frame['this']   = $item;
+                            $frame['index']  = $index;
+                            $frame['@index'] = $index;
+                            $frame['@first'] = $index === 0;
+                            $frame['@last']  = $index === $last;
                             $stack[]        = $frame;
                             $out           .= $this->execute($node['children'], $stack);
                             array_pop($stack);

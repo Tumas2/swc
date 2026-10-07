@@ -118,12 +118,19 @@ export class NanoRenderer {
         code += "let stack = [data];\n";
         code += "const get = (parts) => _get(stack, parts);\n";
 
-        // Tokenize: split on {{ ... }} and {{{ ... }}} tags
-        const tokens = template.split(/((?:{{{[\s\S]*?}}})|(?:{{[\s\S]*?}}))/g);
+        // Tokenize: split on {{!-- comments --}}, {{{ ... }}} and {{ ... }} tags.
+        // Long comments come first because they may contain "}}".
+        const tokens = template.split(/((?:{{!--[\s\S]*?--}})|(?:{{{[\s\S]*?}}})|(?:{{[\s\S]*?}}))/g);
         const blockStack = [];
 
         // Helper: convert a dot-path string to a JSON array literal for get()
         const getPath = (str) => JSON.stringify(str.split('.'));
+
+        // Reports a malformed template; compile() then renders ''.
+        const fail = (message) => {
+            console.error(`NanoRenderer: ${message}`);
+            return () => '';
+        };
 
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
@@ -131,6 +138,8 @@ export class NanoRenderer {
             if (i % 2 === 0) {
                 // Plain text
                 if (token) code += `out += ${JSON.stringify(token)};\n`;
+            } else if (token.startsWith('{{!')) {
+                // {{! comment }} and {{!-- comment --}} produce no output
             } else {
                 // Template tag
                 const isTriple = token.startsWith('{{{');
@@ -139,15 +148,17 @@ export class NanoRenderer {
                 const parts = trimmed.split(/\s+/);
                 const type = parts[0];
                 const args = parts.slice(1).join(' ');
+                const top = blockStack[blockStack.length - 1];
 
-                if (type === '#if') {
-                    blockStack.push({ type: 'if' });
-                    code += `if (get(${getPath(args)})) {\n`;
+                if (type === '#if' || type === '#unless') {
+                    const negate = type === '#unless' ? '!' : '';
+                    blockStack.push({ type: type.slice(1), hasElse: false });
+                    code += `if (${negate}get(${getPath(args)})) {\n`;
 
                 } else if (type === 'else') {
-                    const top = blockStack[blockStack.length - 1];
-                    if (top && top.type === 'each') {
-                        top.hasElse = true;
+                    if (!top || top.hasElse) return fail('Unexpected {{else}}');
+                    top.hasElse = true;
+                    if (top.type === 'each') {
                         code += `    stack.pop();\n`;
                         code += `  });\n`; // close forEach
                         code += `} else {\n`; // close 'if list.length > 0', open else
@@ -155,7 +166,8 @@ export class NanoRenderer {
                         code += `} else {\n`;
                     }
 
-                } else if (type === '/if') {
+                } else if (type === '/if' || type === '/unless') {
+                    if (!top || top.type !== type.slice(1)) return fail(`Unexpected {{${type}}}`);
                     blockStack.pop();
                     code += `}\n`;
 
@@ -165,11 +177,12 @@ export class NanoRenderer {
                     code += `const list = get(${getPath(args)});\n`;
                     code += `if (Array.isArray(list) && list.length > 0) {\n`;
                     code += `  list.forEach((item, index) => {\n`;
-                    code += `    stack.push({ ...((typeof item === 'object' && item) || {}), this: item, index });\n`;
+                    code += `    stack.push({ ...((typeof item === 'object' && item) || {}), this: item, index, '@index': index, '@first': index === 0, '@last': index === list.length - 1 });\n`;
 
                 } else if (type === '/each') {
-                    const top = blockStack.pop();
-                    if (top && top.hasElse) {
+                    if (!top || top.type !== 'each') return fail('Unexpected {{/each}}');
+                    blockStack.pop();
+                    if (top.hasElse) {
                         // forEach and wrapping if were already closed by {{else}}
                         code += `}\n`; // close else block
                         code += `}\n`; // close outer scope
@@ -222,8 +235,7 @@ export class NanoRenderer {
         // Catch unclosed blocks before trying to compile
         if (blockStack.length > 0) {
             const unclosed = blockStack.map(b => `{{#${b.type}}}`).join(', ');
-            console.error(`NanoRenderer: Unclosed template block(s): ${unclosed}`);
-            return () => '';
+            return fail(`Unclosed template block(s): ${unclosed}`);
         }
 
         code += "return out;";

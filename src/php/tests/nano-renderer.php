@@ -39,6 +39,31 @@ $parity_cases = [
     'mismatched close'      => ['{{#if a}}x{{/each}}', '{"a":1}'],
     'else at top level'     => ['x{{else}}y', '{}'],
     'unicode'               => ['{{s}}', '{"s":"åäö ☃"}'],
+
+    // Comments
+    'short comment'         => ['a{{! note }}b', '{}'],
+    'long comment'          => ['a{{!-- has }} and {{x}} inside --}}b', '{"x":1}'],
+    'comment in block'      => ['{{#if a}}{{!-- c --}}y{{/if}}', '{"a":1}'],
+    'unclosed long comment' => ['a{{!-- open }}b', '{}'],
+
+    // {{#unless}}
+    'unless falsy'          => ['{{#unless a}}y{{else}}n{{/unless}}', '{"a":0}'],
+    'unless truthy'         => ['{{#unless a}}y{{else}}n{{/unless}}', '{"a":"0"}'],
+    'unless empty list'     => ['{{#unless l}}none{{/unless}}|{{#unless l.length}}empty{{/unless}}', '{"l":[]}'],
+    'unless nested in each' => ['{{#each l}}{{#unless @last}}{{this}},{{else}}{{this}}{{/unless}}{{/each}}', '{"l":["a","b","c"]}'],
+    'unless closed by /if'  => ['{{#unless a}}x{{/if}}', '{}'],
+    'if closed by /unless'  => ['{{#if a}}x{{/unless}}', '{"a":1}'],
+    'double else'           => ['{{#if a}}x{{else}}y{{else}}z{{/if}}', '{"a":1}'],
+    'stray /unless'         => ['x{{/unless}}', '{}'],
+
+    // Loop variables
+    'loop @ variables'      => ['{{#each l}}{{@index}}{{#if @first}}F{{/if}}{{#if @last}}L{{/if}};{{/each}}', '{"l":["a","b","c"]}'],
+    'single item first+last'=> ['{{#each l}}{{@first}}/{{@last}}{{/each}}', '{"l":[1]}'],
+    'empty list @ vars'     => ['{{#each l}}{{@index}}{{else}}none{{/each}}', '{"l":[]}'],
+    'nested @index'         => ['{{#each rows}}{{#each cells}}{{@index}}{{/each}}|{{@index}};{{/each}}', '{"rows":[{"cells":[1,2]},{"cells":[3]}]}'],
+    'index and @index'      => ['{{#each l}}{{index}}={{@index}} {{/each}}', '{"l":["a","b"]}'],
+    '@ vars outside loop'   => ['[{{@index}}{{@first}}]', '{}'],
+    'item keys stay'        => ['{{#each l}}{{name}}{{index}}{{/each}}', '{"l":[{"name":"n","index":"own"}]}'],
 ];
 
 Test::section('NanoRenderer — parity with NanoRenderer.js');
