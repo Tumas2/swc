@@ -42,6 +42,8 @@ namespace SWC;
  *   {{! note }} {{!-- note --}}   comments, no output
  *   {{name arg "str" 2}}          helper call (escaped); {{{name arg}}} raw
  *   {{url link}}                  built-in helper: link if its scheme is safe, otherwise "#"
+ *   {{> name}}                    named partial, sharing the current context
+ *   {{> name path}}               named partial with that value as its only context
  *   nested {{#each}}              context stack — inner this shadows outer this
  */
 class NanoRenderer
@@ -71,6 +73,21 @@ class NanoRenderer
     /** @var array<string, bool> Unknown helper names already reported, so loops don't flood the log. */
     private static array $reported_helpers = [];
 
+    /** How deep partials may call partials (recursion included) before rendering stops. */
+    private const PARTIAL_DEPTH_LIMIT = 32;
+
+    /** Matches a partial tag's body after ">": a name, optionally followed by one path. */
+    private const PARTIAL_TAG_RE = '/^([\w\-\/.]+)(?:\s+(\S+))?$/';
+
+    /** @var array<string, string> Partial templates by name, shared by every instance. */
+    private static array $partials = [];
+
+    /** @var callable|null Supplies partials that aren't registered: fn(string $name): ?string */
+    private static $partial_resolver = null;
+
+    /** @var array<string, bool> Names the resolver had no template for, or already reported missing. */
+    private static array $missing_partials = [];
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
@@ -98,6 +115,33 @@ class NanoRenderer
         self::helpers();
         self::$helpers[$name] = $callback;
         unset(self::$reported_helpers[$name]);
+    }
+
+    /**
+     * Registers a named partial for every renderer, used as {{> name}} (shares
+     * the caller's context) or {{> name path}} (renders with that value as its
+     * only context). Partials may call themselves, up to a depth of 32.
+     *
+     * @param string $name
+     * @param string $template
+     */
+    public static function register_partial(string $name, string $template): void
+    {
+        self::$partials[$name] = $template;
+        unset(self::$missing_partials[$name]);
+    }
+
+    /**
+     * Sets the function that supplies partials that aren't registered. It is
+     * called by name on first use and returns the template string or null;
+     * the result is kept for the rest of the process.
+     *
+     * @param callable|null $resolver fn(string $name): ?string
+     */
+    public static function set_partial_resolver(?callable $resolver): void
+    {
+        self::$partial_resolver  = $resolver;
+        self::$missing_partials = [];
     }
 
     /**
@@ -176,6 +220,22 @@ class NanoRenderer
 
             $is_triple = str_starts_with($token, '{{{');
             $trimmed   = trim($is_triple ? substr($token, 3, -3) : substr($token, 2, -2));
+
+            // "&gt;" too, like the JS renderer: a template read from a shadow root's innerHTML has ">" escaped.
+            $partial_marker = str_starts_with($trimmed, '>') ? 1 : (str_starts_with($trimmed, '&gt;') ? 4 : 0);
+
+            if ($partial_marker > 0) {
+                // {{> name}} shares this context; {{> name path}} renders with only that value.
+                if (!preg_match(self::PARTIAL_TAG_RE, trim(substr($trimmed, $partial_marker)), $m)) {
+                    throw new \UnexpectedValueException("invalid partial tag {{{$trimmed}}}");
+                }
+                $nodes[] = [
+                    'type' => 'partial',
+                    'name' => $m[1],
+                    'path' => isset($m[2]) ? explode('.', $m[2]) : null,
+                ];
+                continue;
+            }
             $parts     = preg_split('/\s+/', $trimmed);
             $type      = $parts[0];
             $args      = implode(' ', array_slice($parts, 1));
@@ -337,7 +397,7 @@ class NanoRenderer
      * @param array   $stack Context stack of arrays/objects (innermost frame at the end).
      * @return string
      */
-    private function execute(array $nodes, array $stack): string
+    private function execute(array $nodes, array $stack, int $depth = 0): string
     {
         $out = '';
 
@@ -367,9 +427,9 @@ class NanoRenderer
                 case 'unless':
                     $truthy = $this->is_truthy($this->get($stack, $node['path']));
                     if ($truthy === ($node['type'] === 'if')) {
-                        $out .= $this->execute($node['children'], $stack);
+                        $out .= $this->execute($node['children'], $stack, $depth);
                     } elseif ($node['else'] !== null) {
-                        $out .= $this->execute($node['else'], $stack);
+                        $out .= $this->execute($node['else'], $stack, $depth);
                     }
                     break;
 
@@ -386,17 +446,65 @@ class NanoRenderer
                             $frame['@first'] = $index === 0;
                             $frame['@last']  = $index === $last;
                             $stack[]        = $frame;
-                            $out           .= $this->execute($node['children'], $stack);
+                            $out           .= $this->execute($node['children'], $stack, $depth);
                             array_pop($stack);
                         }
                     } elseif ($node['else'] !== null) {
-                        $out .= $this->execute($node['else'], $stack);
+                        $out .= $this->execute($node['else'], $stack, $depth);
                     }
+                    break;
+
+                case 'partial':
+                    // With a path, that value is the partial's only frame (missing → empty object).
+                    $partial_stack = $node['path'] === null
+                        ? $stack
+                        : [$this->get($stack, $node['path']) ?? new \stdClass()];
+                    $out .= $this->render_partial($node['name'], $partial_stack, $depth + 1);
                     break;
             }
         }
 
         return $out;
+    }
+
+    /**
+     * Renders a named partial against a context stack. Unknown partials and
+     * calls past the depth limit render as '' with a warning.
+     *
+     * @param string $name
+     * @param array  $stack
+     * @param int    $depth Partial nesting depth of this call.
+     * @return string
+     */
+    private function render_partial(string $name, array $stack, int $depth): string
+    {
+        if ($depth > self::PARTIAL_DEPTH_LIMIT) {
+            trigger_error("SWC NanoRenderer: partials nested deeper than " . self::PARTIAL_DEPTH_LIMIT . " levels at '{$name}'", E_USER_WARNING);
+            return '';
+        }
+
+        if (!isset(self::$partials[$name]) && !isset(self::$missing_partials[$name]) && self::$partial_resolver !== null) {
+            $template = (self::$partial_resolver)($name);
+            if (is_string($template)) {
+                self::$partials[$name] = $template;
+            }
+        }
+
+        if (!isset(self::$partials[$name])) {
+            if (!isset(self::$missing_partials[$name])) {
+                self::$missing_partials[$name] = true;
+                trigger_error("SWC NanoRenderer: unknown partial '{$name}'", E_USER_WARNING);
+            }
+            return '';
+        }
+
+        $template = self::$partials[$name];
+        if (!array_key_exists($template, self::$cache)) {
+            self::$cache[$template] = $this->compile($template);
+        }
+
+        $nodes = self::$cache[$template];
+        return $nodes === null ? '' : $this->execute($nodes, $stack, $depth);
     }
 
     /**

@@ -126,6 +126,66 @@ function _callHelper(name, args) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Named partials — {{> name}} and {{> name path}}
+// ---------------------------------------------------------------------------
+
+/** How deep partials may call partials (recursion included) before rendering stops. */
+const _PARTIAL_DEPTH_LIMIT = 32;
+
+/** Matches a partial tag's body after ">": a name, optionally followed by one path. */
+const _PARTIAL_TAG_RE = /^([\w\-\/.]+)(?:\s+(\S+))?$/;
+
+/** @type {Map<string, string>} Partial templates by name, shared by every renderer. */
+const _partials = new Map();
+
+/** @type {((name: string) => Promise<string|null>|string|null) | null} */
+let _partialResolver = null;
+
+/** @type {Map<string, Promise<void>>} Resolver calls in flight, so concurrent loads share one. */
+const _pendingPartials = new Map();
+
+/** @type {Set<string>} Missing partial names already reported. */
+const _reportedPartials = new Set();
+
+/**
+ * Returns the partial names a template references.
+ * @param {string} template
+ * @returns {string[]}
+ */
+function _partialNames(template) {
+    return [...template.matchAll(/{{{?\s*(?:>|&gt;)\s*([\w\-\/.]+)/g)].map(m => m[1]);
+}
+
+/**
+ * Makes sure a partial, and every partial it references, is registered,
+ * asking the resolver for any that aren't.
+ * @param {string} name
+ * @param {Set<string>} visited Names already handled in this load, for cycles.
+ * @returns {Promise<void>}
+ */
+async function _loadPartial(name, visited) {
+    if (visited.has(name)) return;
+    visited.add(name);
+
+    if (!_partials.has(name) && _partialResolver) {
+        if (!_pendingPartials.has(name)) {
+            const pending = Promise.resolve()
+                .then(() => _partialResolver(name))
+                .then(template => { if (typeof template === 'string') _partials.set(name, template); })
+                .catch(e => console.error(`NanoRenderer: partial resolver failed for "${name}":`, e))
+                .finally(() => _pendingPartials.delete(name));
+            _pendingPartials.set(name, pending);
+        }
+        await _pendingPartials.get(name);
+    }
+
+    const template = _partials.get(name);
+    if (template !== undefined) {
+        await Promise.all(_partialNames(template).map(child => _loadPartial(child, visited)));
+    }
+}
+
 /** Valid helper names. A tag whose first word isn't one stays a plain lookup. */
 const _HELPER_NAME_RE = /^[A-Za-z_][\w-]*$/;
 
@@ -177,6 +237,64 @@ export class NanoRenderer {
     }
 
     /**
+     * Registers a named partial for every renderer, used as {{> name}} (shares
+     * the caller's context) or {{> name path}} (renders with that value as its
+     * only context). Partials may call themselves, up to a depth of 32.
+     * @param {string} name
+     * @param {string} template
+     */
+    static registerPartial(name, template) {
+        _partials.set(name, template);
+        _reportedPartials.delete(name);
+    }
+
+    /**
+     * Sets the function that supplies partials that aren't registered. It is
+     * called by name, may be async, and returns the template string or null.
+     * Resolution happens before rendering (see loadPartials), never during it.
+     * @param {((name: string) => Promise<string|null>|string|null) | null} resolver
+     */
+    static setPartialResolver(resolver) {
+        _partialResolver = resolver;
+    }
+
+    /**
+     * Registers every partial a template uses, recursively, through the
+     * resolver. NanoRenderStatefulElement calls this before its first render;
+     * call it yourself before rendering a template with a bare NanoRenderer.
+     * @param {string} template
+     * @returns {Promise<void>}
+     */
+    static async loadPartials(template) {
+        const visited = new Set();
+        await Promise.all(_partialNames(template || '').map(name => _loadPartial(name, visited)));
+    }
+
+    /**
+     * Renders a registered partial against a context stack.
+     * @private
+     * @param {string} name
+     * @param {object[]} stack
+     * @param {number} depth Partial nesting depth of this call.
+     * @returns {string}
+     */
+    _renderPartial(name, stack, depth) {
+        if (depth > _PARTIAL_DEPTH_LIMIT) {
+            console.warn(`NanoRenderer: partials nested deeper than ${_PARTIAL_DEPTH_LIMIT} levels at "${name}"`);
+            return '';
+        }
+        const template = _partials.get(name);
+        if (template === undefined) {
+            if (!_reportedPartials.has(name)) {
+                _reportedPartials.add(name);
+                console.warn(`NanoRenderer: unknown partial "${name}"`);
+            }
+            return '';
+        }
+        return this.compile(template)(undefined, stack, depth);
+    }
+
+    /**
      * Escapes a string to be safe for use in single-quoted string literals.
      * @param {string} str
      * @returns {string}
@@ -200,8 +318,11 @@ export class NanoRenderer {
 
         // Preamble: set up output buffer, context stack, and a thin get() wrapper
         // that closes over `stack` while delegating to the module-level _get.
+        // A partial sharing its caller's context receives a copy of the
+        // caller's stack; everything else starts from `data`.
         let code = "let out = '';\n";
-        code += "let stack = [data];\n";
+        code += "let stack = parentStack ? parentStack.slice() : [data];\n";
+        code += "depth = depth || 0;\n";
         code += "const get = (parts) => _get(stack, parts);\n";
 
         // Tokenize: split on {{!-- comments --}}, {{{ ... }}} and {{ ... }} tags.
@@ -255,7 +376,18 @@ export class NanoRenderer {
                 const args = parts.slice(1).join(' ');
                 const top = blockStack[blockStack.length - 1];
 
-                if (type === '#if' || type === '#unless') {
+                // "&gt;" too: a template read from a shadow root's innerHTML has ">" escaped.
+                const partialMarker = trimmed.startsWith('>') ? 1 : trimmed.startsWith('&gt;') ? 4 : 0;
+
+                if (partialMarker) {
+                    // {{> name}} shares this context; {{> name path}} renders with only that value.
+                    const partial = trimmed.slice(partialMarker).trim().match(_PARTIAL_TAG_RE);
+                    if (!partial) return fail(`Invalid partial tag {{${trimmed}}}`);
+                    const [, name, path] = partial;
+                    const partialStack = path ? `[get(${getPath(path)}) ?? {}]` : 'stack';
+                    code += `out += _partial(${JSON.stringify(name)}, ${partialStack}, depth + 1);\n`;
+
+                } else if (type === '#if' || type === '#unless') {
                     const negate = type === '#unless' ? '!' : '';
                     blockStack.push({ type: type.slice(1), hasElse: false });
                     code += `if (${negate}get(${getPath(args)})) {\n`;
@@ -322,9 +454,11 @@ export class NanoRenderer {
 
         try {
             // Pass module-level helpers as parameters — no per-function copies
-            const fn = new Function('data', '_escape', '_sanitize', '_get', '_helper', code);
-            // Wrap so the public API is simply fn(data)
-            const bound = (data) => fn(data, _escape, _sanitize, _get, _callHelper);
+            const fn = new Function('data', '_escape', '_sanitize', '_get', '_helper', '_partial', 'parentStack', 'depth', code);
+            const renderPartial = (name, stack, depth) => this._renderPartial(name, stack, depth);
+            // Wrap so the public API is simply fn(data); partials also pass a stack and depth
+            const bound = (data, parentStack, depth) =>
+                fn(data, _escape, _sanitize, _get, _callHelper, renderPartial, parentStack, depth);
             this.cache.set(template, bound);
             return bound;
         } catch (e) {
@@ -358,7 +492,20 @@ export class NanoRenderer {
 export const _sharedNano = new NanoRenderer();
 
 export class NanoRenderStatefulElement extends StatefulElement {
+    /**
+     * Returns the shared NanoRenderer's render function.
+     * @returns {(template: string, data: object) => string}
+     */
     getRenderer() {
         return _sharedNano.render;
+    }
+
+    /**
+     * Loads the named partials the template uses before the first render.
+     * @param {string} template
+     * @returns {Promise<void>}
+     */
+    async prepareTemplate(template) {
+        await NanoRenderer.loadPartials(template);
     }
 }

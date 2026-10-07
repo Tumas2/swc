@@ -87,6 +87,26 @@ $parity_cases = [
     'url non-strings'         => ['[{{url missing}}][{{url 5}}][{{url true}}]', '{}'],
     'url in attribute'        => ['<a href="{{url link}}">{{text}}</a>', '{"link":"javascript:alert(1)","text":"x"}'],
     'url same name as data'   => ['{{#if url}}<img src="{{url url}}">{{/if}}', '{"url":"/img/a.png"}'],
+
+    // Named partials (registered identically in js-render.mjs)
+    'partial shared context'  => ['{{> greet}}', '{"name":"Ann"}'],
+    'partial with path'       => ['{{> greet person}}', '{"name":"Outer","person":{"name":"Bo"}}'],
+    'partial path isolates'   => ['{{> greet person}}', '{"name":"Outer","person":{}}'],
+    'partial missing path'    => ['[{{> greet nope}}]', '{"name":"Outer"}'],
+    'partial in loop'         => ['{{#each people}}{{> greet}};{{/each}}', '{"name":"Outer","people":[{"name":"A"},{"name":"B"}]}'],
+    'partial sees @index'     => ['{{#each l}}{{> idx}}{{/each}}', '{"l":["a","b"]}'],
+    'partial with this'       => ['{{#each people}}{{> greet this}};{{/each}}', '{"people":[{"name":"A"},{}]}'],
+    'recursive menu'          => ['{{> menu children}}', '{"title":"Page","children":[{"title":"A","children":[{"title":"A1"},{"title":"A2","children":[{"title":"A2a"}]}]},{"title":"B"}]}'],
+    'depth limit'             => ['{{> loop}}', '{}'],
+    'unknown partial'         => ['[{{> nope}}]', '{}'],
+    'malformed partial'       => ['[{{> bad}}]', '{"a":1}'],
+    'partial name with slash' => ['{{> parts/header}}', '{"title":"T"}'],
+    'partial without space'   => ['{{>greet}}', '{"name":"N"}'],
+    'partial in triple'       => ['{{{> greet}}}', '{"name":"<N>"}'],
+    'partial uses helper'     => ['{{> shout}}', '{"name":"ann"}'],
+    'resolver partials'       => ['{{> res-a}}', '{"name":"Z"}'],
+    'invalid partial tag'     => ['x{{> a b c}}', '{}'],
+    'escaped partial marker'  => ['{{&gt; greet}}|{{&gt; greet person}}', '{"name":"A","person":{"name":"B"}}'],
 ];
 
 // Test helpers — registered identically in js-render.mjs.
@@ -95,6 +115,24 @@ NanoRenderer::register_helper('upper', fn(mixed $value = null): string => strtou
 NanoRenderer::register_helper('join', fn(mixed ...$args): string => implode('-', array_map(fn($a) => (string) $a, $args)));
 NanoRenderer::register_helper('count', fn(mixed ...$args): int => count($args));
 NanoRenderer::register_helper('boom', fn(): never => throw new RuntimeException('boom'));
+
+// Test partials — registered identically in js-render.mjs.
+foreach ([
+    'greet'        => 'Hi {{name}}',
+    'idx'          => '[{{@index}}]',
+    'menu'         => '<ul>{{#each this}}<li>{{title}}{{#if children}}{{> menu children}}{{/if}}</li>{{/each}}</ul>',
+    'loop'         => 'x{{> loop}}',
+    'bad'          => '{{#if a}}',
+    'parts/header' => '<h1>{{title}}</h1>',
+    'shout'        => '{{upper name}}',
+] as $partial_name => $partial_template) {
+    NanoRenderer::register_partial($partial_name, $partial_template);
+}
+$resolver_calls = [];
+NanoRenderer::set_partial_resolver(function (string $name) use (&$resolver_calls): ?string {
+    $resolver_calls[] = $name;
+    return ['res-a' => 'A{{> res-b}}', 'res-b' => 'B{{name}}'][$name] ?? null;
+});
 
 Test::section('NanoRenderer — parity with NanoRenderer.js');
 
@@ -139,6 +177,15 @@ Test::ok('malformed template warns', count($warnings) === 1 && str_contains($war
 
 [, $warnings] = Test::warnings(fn() => $renderer->render('{{#each php_only}}x', []));
 Test::same('malformed template warns only once (cached)', [], $warnings);
+
+[, $warnings] = Test::warnings(fn() => $renderer->render('{{> res-a}}{{> res-a}}{{> nope}}{{> nope}}', []));
+$asked = array_unique($resolver_calls);
+sort($asked);
+Test::same('resolver is asked for each unregistered name', ['nope', 'res-a', 'res-b'], $asked);
+Test::same('resolver results are kept', count($resolver_calls), count(array_unique($resolver_calls)));
+
+NanoRenderer::register_partial('nope', 'now here');
+Test::same('registering clears a missing partial', 'now here', $renderer->render('{{> nope}}', []));
 
 Test::same('{{{safe}}} sanitizes', '<b>x</b>', $renderer->render('{{{safe h}}}', ['h' => '<b onclick="x()">x</b><script>y()</script>']));
 Test::same('{{{safe}}} of falsy value is empty', '', $renderer->render('{{{safe h}}}', ['h' => 0]));

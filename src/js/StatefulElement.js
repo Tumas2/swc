@@ -66,6 +66,9 @@ export class StatefulElement extends HTMLElement {
             this.template = this.shadowRoot.innerHTML;
         }
 
+        // Only file and DSD templates: view() may read state, which isn't wired up yet.
+        if (this.template) await this.prepareTemplate(this.template);
+
         this._stores = this._resolveStores();
         if (typeof this._stores !== 'object' || this._stores === null) {
             throw new Error('getStores() must be implemented and return an object of store instances.');
@@ -185,6 +188,17 @@ export class StatefulElement extends HTMLElement {
      */
     computed(state) {
         return {};
+    }
+
+    /**
+     * Called once before the first render with the template, so a renderer
+     * can load what it needs asynchronously (NanoRenderStatefulElement loads
+     * named partials here). Rendering itself stays synchronous.
+     * @param {string} _template
+     * @returns {Promise<void>}
+     */
+    async prepareTemplate(_template) {
+        // Nothing to prepare for the raw renderer.
     }
 
     /**

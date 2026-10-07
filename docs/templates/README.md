@@ -238,6 +238,44 @@ A few things to know:
 
 > **Partials only work with file-based templates** (via `getTemplatePath()`). Inline `view()` strings have no file path to resolve against.
 
+### Named partials
+
+`{{#html}}` pastes a file in by path. Named partials are looked up by name instead, so a theme or plugin can supply them, and they can call themselves (a nested menu, a comment thread).
+
+```html
+{{> site-header}}                 — shares the current context
+{{> menu page.children}}          — renders with page.children as its only context
+```
+
+- **Without an argument**, the partial sees everything the caller sees: the same data, loop items, `@index` and outer values.
+- **With an argument**, that value is the partial's whole context. Nothing from the caller leaks in, which matters for recursion: a leaf item without `children` doesn't pick up the page's `children`.
+- **Recursion is allowed** up to 32 levels deep; beyond that the partial renders nothing and logs a warning.
+
+```html
+<!-- the "menu" partial -->
+<ul>
+    {{#each this}}
+        <li>{{ title }}{{#if children}}{{> menu children}}{{/if}}</li>
+    {{/each}}
+</ul>
+```
+
+Register partials directly, or set a resolver that supplies them by name:
+
+```js
+import { NanoRenderer } from 'swc';
+
+NanoRenderer.registerPartial('site-header', '<header>{{ site.name }}</header>');
+NanoRenderer.setPartialResolver(async (name) => {
+    const response = await fetch(`/partials/${name}.html`);
+    return response.ok ? response.text() : null;
+});
+```
+
+The resolver is asked once per name, before the component's first render (rendering itself stays synchronous). Partials used by other partials are loaded too. Templates from `view()` aren't scanned, because `view()` may read state that isn't ready yet; register the partials they use up front, or call `await NanoRenderer.loadPartials(template)` yourself. An unknown partial renders nothing and logs a warning.
+
+On the server, the PHP renderer has the same API: `NanoRenderer::register_partial()` and `NanoRenderer::set_partial_resolver()`, whose resolver is called synchronously on first use.
+
 ---
 
 ### Project-wide setup

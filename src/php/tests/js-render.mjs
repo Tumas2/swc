@@ -22,10 +22,29 @@ NanoRenderer.registerHelper('join', (...args) => args.join('-'));
 NanoRenderer.registerHelper('count', (...args) => args.length);
 NanoRenderer.registerHelper('boom', () => { throw new Error('boom'); });
 
+// Test partials — registered identically in nano-renderer.php. The res-*
+// ones are only reachable through the resolver.
+const partials = {
+    'greet': 'Hi {{name}}',
+    'idx': '[{{@index}}]',
+    'menu': '<ul>{{#each this}}<li>{{title}}{{#if children}}{{> menu children}}{{/if}}</li>{{/each}}</ul>',
+    'loop': 'x{{> loop}}',
+    'bad': '{{#if a}}',
+    'parts/header': '<h1>{{title}}</h1>',
+    'shout': '{{upper name}}',
+};
+const resolvable = { 'res-a': 'A{{> res-b}}', 'res-b': 'B{{name}}' };
+for (const [name, template] of Object.entries(partials)) NanoRenderer.registerPartial(name, template);
+NanoRenderer.setPartialResolver(async (name) => resolvable[name] ?? null);
+
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
 
 const renderer = new NanoRenderer();
-const output = JSON.parse(input).map(([template, dataJson]) => renderer.render(template, JSON.parse(dataJson)));
+const output = [];
+for (const [template, dataJson] of JSON.parse(input)) {
+    await NanoRenderer.loadPartials(template);
+    output.push(renderer.render(template, JSON.parse(dataJson)));
+}
 
 process.stdout.write(JSON.stringify(output));
