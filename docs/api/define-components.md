@@ -192,4 +192,4 @@ defineComponents({...}, {
 
 ---
 
-[← StatefulElement](stateful-element.md)
+[← NanoRenderer](nano-renderer.md)

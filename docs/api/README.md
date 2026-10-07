@@ -5,6 +5,7 @@ Complete method documentation for SWC's core classes.
 | Class / Function | Description |
 | :--- | :--- |
 | [StatefulElement](stateful-element.md) | Base class for all SWC components |
+| [NanoRenderer](nano-renderer.md) | Built-in template engine: rendering, helpers, partials |
 | [defineComponents](define-components.md) | Register and lazy-load custom elements |
 
 More reference pages will be added as the library grows.

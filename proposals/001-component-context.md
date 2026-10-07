@@ -1,6 +1,6 @@
 # 001 — Context in SSR
 
-**Status:** Implemented on branch `php-ssr-fixes` (not merged). Docs pending — tracked in [002](002-ssr-and-template-docs.md).
+**Status:** Done. Documented in [docs/ssr/php](../docs/ssr/php/README.md#nested-components-and-context).
 **Affects:** `ComponentRegistry`, `Component`
 
 > **Outcome.** `ComponentRegistry` now renders nested components recursively and

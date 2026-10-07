@@ -12,5 +12,13 @@ point the file here gets deleted or marked superseded.
 
 | # | Title | Status |
 |---|---|---|
-| 001 | [Context in SSR](001-component-context.md) | Implemented on `php-ssr-fixes`, docs pending |
-| 002 | [SSR rework and template extensions: docs to-do](002-ssr-and-template-docs.md) | Implemented, docs partly written |
+| 001 | [Context in SSR](001-component-context.md) | Done — documented in `docs/ssr/php` |
+
+## Ideas not yet written up
+
+- **File-based render entry point (PHP).** `NanoRenderer::set_cache_dir()` keys
+  cached templates by a hash of their text, so each request still reads and
+  hashes every template file (~0.13 ms for six templates outside OPcache, in
+  the CMS benchmark). A `render_file($path, $data)` keyed by real path and
+  modification time could skip both on cache hits. Not needed at current
+  sizes; worth it only if templates with many partials show the cost.

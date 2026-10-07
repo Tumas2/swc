@@ -15,17 +15,12 @@ SWC's SSR approach has two parts:
 Instead of `<my-card></my-card>` (an empty shell waiting for JS), the server outputs the Shadow DOM inline inside a `<template>` tag:
 
 ```html
-<my-card>
-    <template shadowrootmode="open">
-        <link rel="stylesheet" href="/components/my-card/style.css">
-        <div class="card">
-            <h2>Alex</h2>
-        </div>
-    </template>
-</my-card>
+<my-card><template shadowrootmode="open"><div class="card"><h2>Alex</h2></div><link rel="stylesheet" href="/components/my-card/style.css"></template></my-card>
 ```
 
 The browser renders this immediately, before any JavaScript runs. When JS loads and the component upgrades, it finds the Shadow DOM already in place and adopts it.
+
+The markup has no added whitespace and the stylesheet comes last on purpose: the client morphs the shadow root against the template by position, so the server output must line up node for node with the first client render.
 
 **2. Initial state injection**
 
@@ -45,7 +40,7 @@ The JS `createStore()` function reads this on startup. The first client-side ren
 | :--- | :--- |
 | [PHP](php/README.md) | Available |
 
-More implementations may be added in the future. The SSR contract is simple enough to implement in any language: render a component's `markup.html` using NanoRenderer logic, wrap it in a DSD `<template>`, and output the initial state as a script tag.
+More implementations may be added in the future. The SSR contract is simple enough to implement in any language: render a component's `markup.html` with NanoRenderer's rules (JavaScript truthiness and value formatting, so the output matches the client byte for byte), convert `on*` attributes to `data-swc-event-*`, wrap the result in a DSD `<template>`, and output the initial state as a script tag.
 
 ---
 

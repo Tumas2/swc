@@ -134,6 +134,33 @@ class AppElement extends StatefulElement {
 
 ---
 
+### `prepareTemplate(template)`
+
+```
+async prepareTemplate(template: string): Promise<void>
+```
+
+Called once in `connectedCallback()`, after the template is loaded and before the first render, so a renderer can load what it needs asynchronously. Rendering itself stays synchronous.
+
+- Default does nothing.
+- `NanoRenderStatefulElement` overrides it to load the template's [named partials](../templates/README.md#named-partials) through the partial resolver.
+- Only called for templates from `getTemplatePath()` or a declarative shadow root. It is not called for `view()`, because `view()` may read `this.state`, which isn't wired up yet at that point.
+
+```javascript
+// A custom engine that needs to fetch something before rendering
+class MyComponent extends StatefulElement {
+    async prepareTemplate(template) {
+        await myEngine.preload(template);
+    }
+
+    getRenderer() {
+        return (template, context) => myEngine.render(template, context);
+    }
+}
+```
+
+---
+
 ### `render()`
 
 ```
@@ -213,4 +240,4 @@ Starts one level above the component, so a component that both provides and uses
 
 ---
 
-[← API Reference](README.md)
+[← API Reference](README.md) | [Next: NanoRenderer →](nano-renderer.md)
