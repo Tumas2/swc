@@ -88,6 +88,15 @@ class NanoRenderer
     /** @var array<string, bool> Names the resolver had no template for, or already reported missing. */
     private static array $missing_partials = [];
 
+    /** @var array<string, bool> Partials the resolver supplied (not registered explicitly). */
+    private static array $resolved_partials = [];
+
+    /** Directory for compiled templates, or null when the file cache is off. */
+    private static ?string $cache_dir = null;
+
+    /** @var array<string, bool> #each paths already warned about for arrays with gaps. */
+    private static array $reported_gaps = [];
+
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
@@ -128,20 +137,58 @@ class NanoRenderer
     public static function register_partial(string $name, string $template): void
     {
         self::$partials[$name] = $template;
-        unset(self::$missing_partials[$name]);
+        unset(self::$missing_partials[$name], self::$resolved_partials[$name]);
     }
 
     /**
      * Sets the function that supplies partials that aren't registered. It is
      * called by name on first use and returns the template string or null;
-     * the result is kept for the rest of the process.
+     * the result is kept until the resolver is set again.
+     *
+     * Setting a resolver forgets every partial the previous one supplied (and
+     * every remembered miss), so call it again whenever the source of
+     * partials changes, e.g. after switching theme. Partials registered with
+     * register_partial() are kept.
      *
      * @param callable|null $resolver fn(string $name): ?string
      */
     public static function set_partial_resolver(?callable $resolver): void
     {
+        foreach (self::$resolved_partials as $name => $_) {
+            unset(self::$partials[$name]);
+        }
         self::$partial_resolver  = $resolver;
-        self::$missing_partials = [];
+        self::$resolved_partials = [];
+        self::$missing_partials  = [];
+    }
+
+    /**
+     * Turns on the compiled-template cache: each parsed template is written
+     * once to $dir as a PHP file named by a hash of the template text, so
+     * OPcache keeps it across requests and templates are not parsed again.
+     * An edited template gets a new hash, so nothing goes stale; old files
+     * can be deleted at any time. Pass null to turn the cache off.
+     *
+     * The directory must not be writable by untrusted users: its files are
+     * included as PHP.
+     *
+     * @param string|null $dir Created if missing.
+     */
+    public static function set_cache_dir(?string $dir): void
+    {
+        if ($dir === null) {
+            self::$cache_dir = null;
+            return;
+        }
+
+        $dir = rtrim($dir, '/\\');
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+            trigger_error("SWC NanoRenderer: cannot create cache directory '{$dir}'; template cache is off", E_USER_WARNING);
+            self::$cache_dir = null;
+            return;
+        }
+
+        self::$cache_dir = $dir;
     }
 
     /**
@@ -153,12 +200,62 @@ class NanoRenderer
      */
     public function render(string $template, array|object $data): string
     {
-        if (!array_key_exists($template, self::$cache)) {
-            self::$cache[$template] = $this->compile($template);
+        $nodes = $this->nodes($template);
+        return $nodes === null ? '' : $this->execute($nodes, [$data]);
+    }
+
+    /**
+     * Returns the parsed template: from memory, then from the compiled-file
+     * cache (if on), and only otherwise by parsing it.
+     *
+     * @param string $template
+     * @return array|null Null if the template is malformed.
+     */
+    private function nodes(string $template): ?array
+    {
+        if (array_key_exists($template, self::$cache)) {
+            return self::$cache[$template];
         }
 
-        $nodes = self::$cache[$template];
-        return $nodes === null ? '' : $this->execute($nodes, [$data]);
+        $file = self::$cache_dir !== null
+            ? self::$cache_dir . '/nano-' . hash('xxh128', $template) . '.php'
+            : null;
+
+        if ($file !== null && is_file($file)) {
+            $nodes = include $file;
+            if (is_array($nodes)) {
+                return self::$cache[$template] = $nodes;
+            }
+        }
+
+        $nodes = $this->compile($template);
+
+        // Malformed templates are not written, so their warning shows on every request.
+        if ($file !== null && $nodes !== null) {
+            $this->write_cache_file($file, $nodes);
+        }
+
+        return self::$cache[$template] = $nodes;
+    }
+
+    /**
+     * Writes a compiled template as `<?php return [...];`. The file is written
+     * under a temporary name and renamed into place, so a concurrent request
+     * never includes a half-written file.
+     *
+     * @param string $file
+     * @param array  $nodes
+     */
+    private function write_cache_file(string $file, array $nodes): void
+    {
+        $tmp = $file . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        if (@file_put_contents($tmp, '<?php return ' . var_export($nodes, true) . ";\n") === false) {
+            trigger_error("SWC NanoRenderer: cannot write to cache directory '" . self::$cache_dir . "'", E_USER_WARNING);
+            return;
+        }
+        if (!@rename($tmp, $file)) {
+            @unlink($tmp); // Another request wrote the same file first.
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -435,6 +532,9 @@ class NanoRenderer
 
                 case 'each':
                     $list = $this->get($stack, $node['path']);
+                    if (is_array($list) && $list !== [] && !array_is_list($list)) {
+                        $this->warn_if_gapped_list($list, $node['path']);
+                    }
                     if (is_array($list) && $list !== [] && array_is_list($list)) {
                         $last = count($list) - 1;
                         foreach ($list as $index => $item) {
@@ -468,6 +568,34 @@ class NanoRenderer
     }
 
     /**
+     * Warns (once per path) when #each gets an array whose keys are all
+     * numbers but don't run 0..n — typically a list after array_filter().
+     * It is a JS object, not an array, so the loop renders nothing; the
+     * output stays the same as the JS renderer, only the warning is added.
+     * Fix it with array_values() before rendering.
+     *
+     * @param array    $list A non-empty array that is not a list.
+     * @param string[] $path
+     */
+    private function warn_if_gapped_list(array $list, array $path): void
+    {
+        $key = implode('.', $path);
+        if (isset(self::$reported_gaps[$key])) {
+            return;
+        }
+        foreach ($list as $index => $_) {
+            if (!is_int($index)) {
+                return; // A real object (associative array) — nothing to warn about.
+            }
+        }
+        self::$reported_gaps[$key] = true;
+        trigger_error(
+            "SWC NanoRenderer: {{#each {$key}}} got an array with gaps in its numeric keys, so it is not a list and renders nothing. Use array_values() first.",
+            E_USER_WARNING
+        );
+    }
+
+    /**
      * Renders a named partial against a context stack. Unknown partials and
      * calls past the depth limit render as '' with a warning.
      *
@@ -486,7 +614,8 @@ class NanoRenderer
         if (!isset(self::$partials[$name]) && !isset(self::$missing_partials[$name]) && self::$partial_resolver !== null) {
             $template = (self::$partial_resolver)($name);
             if (is_string($template)) {
-                self::$partials[$name] = $template;
+                self::$partials[$name]          = $template;
+                self::$resolved_partials[$name] = true;
             }
         }
 
@@ -498,12 +627,7 @@ class NanoRenderer
             return '';
         }
 
-        $template = self::$partials[$name];
-        if (!array_key_exists($template, self::$cache)) {
-            self::$cache[$template] = $this->compile($template);
-        }
-
-        $nodes = self::$cache[$template];
+        $nodes = $this->nodes(self::$partials[$name]);
         return $nodes === null ? '' : $this->execute($nodes, $stack, $depth);
     }
 

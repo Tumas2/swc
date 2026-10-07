@@ -75,8 +75,10 @@ final class Test
     public static function warnings(callable $fn): array
     {
         $warnings = [];
-        set_error_handler(static function (int $_level, string $message) use (&$warnings): bool {
-            $warnings[] = $message;
+        set_error_handler(static function (int $level, string $message) use (&$warnings): bool {
+            if (error_reporting() & $level) { // Skip errors silenced with @.
+                $warnings[] = $message;
+            }
             return true;
         });
         try {
@@ -101,12 +103,14 @@ final class Test
 }
 
 // Any warning a test did not expect is a failure.
-set_error_handler(static function (int $_level, string $message, string $file, int $line): bool {
-    Test::ok('no unexpected warnings', false, "{$message} ({$file}:{$line})");
+set_error_handler(static function (int $level, string $message, string $file, int $line): bool {
+    if (error_reporting() & $level) { // Skip errors silenced with @.
+        Test::ok('no unexpected warnings', false, "{$message} ({$file}:{$line})");
+    }
     return true;
 });
 
-foreach (['nano-renderer', 'markup', 'template-loader', 'sanitizer', 'state-injector', 'component-registry'] as $suite) {
+foreach (['nano-renderer', 'markup', 'template-loader', 'sanitizer', 'state-injector', 'component-registry', 'template-cache'] as $suite) {
     require __DIR__ . "/{$suite}.php";
 }
 

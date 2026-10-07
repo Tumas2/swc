@@ -148,6 +148,12 @@ const _pendingPartials = new Map();
 /** @type {Set<string>} Missing partial names already reported. */
 const _reportedPartials = new Set();
 
+/** @type {Set<string>} Partials the resolver supplied (not registered explicitly). */
+const _resolvedPartials = new Set();
+
+/** Bumped by setPartialResolver(), so answers from a replaced resolver are dropped. */
+let _resolverGeneration = 0;
+
 /**
  * Returns the partial names a template references.
  * @param {string} template
@@ -170,9 +176,14 @@ async function _loadPartial(name, visited) {
 
     if (!_partials.has(name) && _partialResolver) {
         if (!_pendingPartials.has(name)) {
+            const generation = _resolverGeneration;
             const pending = Promise.resolve()
                 .then(() => _partialResolver(name))
-                .then(template => { if (typeof template === 'string') _partials.set(name, template); })
+                .then(template => {
+                    if (typeof template !== 'string' || generation !== _resolverGeneration) return;
+                    _partials.set(name, template);
+                    _resolvedPartials.add(name);
+                })
                 .catch(e => console.error(`NanoRenderer: partial resolver failed for "${name}":`, e))
                 .finally(() => _pendingPartials.delete(name));
             _pendingPartials.set(name, pending);
@@ -246,15 +257,25 @@ export class NanoRenderer {
     static registerPartial(name, template) {
         _partials.set(name, template);
         _reportedPartials.delete(name);
+        _resolvedPartials.delete(name);
     }
 
     /**
      * Sets the function that supplies partials that aren't registered. It is
      * called by name, may be async, and returns the template string or null.
      * Resolution happens before rendering (see loadPartials), never during it.
+     *
+     * Setting a resolver forgets every partial the previous one supplied, so
+     * call it again whenever the source of partials changes. Partials
+     * registered with registerPartial() are kept.
      * @param {((name: string) => Promise<string|null>|string|null) | null} resolver
      */
     static setPartialResolver(resolver) {
+        for (const name of _resolvedPartials) _partials.delete(name);
+        _resolvedPartials.clear();
+        _reportedPartials.clear();
+        _pendingPartials.clear();
+        _resolverGeneration++;
         _partialResolver = resolver;
     }
 

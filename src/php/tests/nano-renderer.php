@@ -188,6 +188,52 @@ Test::same('resolver results are kept', count($resolver_calls), count(array_uniq
 NanoRenderer::register_partial('nope', 'now here');
 Test::same('registering clears a missing partial', 'now here', $renderer->render('{{> nope}}', []));
 
+// Replacing the resolver forgets what it supplied — same steps as js-partial-reset.mjs.
+$expected_reset = [
+    'fromFirst'      => 'AK',
+    'forgotten'      => 'K',
+    'fromSecond'     => 'BK',
+    'staleDropped'   => '',
+    'fromCurrent'    => 'D',
+    'registeredWins' => 'R',
+];
+
+[$php_reset] = Test::warnings(function () use ($renderer): array {
+    $results = [];
+    NanoRenderer::register_partial('kept', 'K');
+    NanoRenderer::set_partial_resolver(fn(string $name): ?string => ['swap' => 'A'][$name] ?? null);
+    $results['fromFirst'] = $renderer->render('{{> swap}}{{> kept}}', []);
+    NanoRenderer::set_partial_resolver(fn(string $name): ?string => null);
+    $results['forgotten'] = $renderer->render('{{> swap}}{{> kept}}', []);
+    NanoRenderer::set_partial_resolver(fn(string $name): ?string => ['swap' => 'B'][$name] ?? null);
+    $results['fromSecond'] = $renderer->render('{{> swap}}{{> kept}}', []);
+    $results['staleDropped'] = ''; // PHP resolves synchronously; nothing can arrive late.
+    NanoRenderer::set_partial_resolver(fn(string $name): ?string => ['late' => 'D'][$name] ?? null);
+    $results['fromCurrent'] = $renderer->render('{{> late}}', []);
+    NanoRenderer::register_partial('late', 'R');
+    NanoRenderer::set_partial_resolver(null);
+    $results['registeredWins'] = $renderer->render('{{> late}}', []);
+    return $results;
+});
+Test::same('PHP: new resolver forgets supplied partials, keeps registered ones', $expected_reset, $php_reset);
+
+$node_reset = proc_open(['node', __DIR__ . '/js-partial-reset.mjs'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $reset_pipes);
+if (is_resource($node_reset)) {
+    $js_reset = json_decode(stream_get_contents($reset_pipes[1]), true);
+    $reset_err = stream_get_contents($reset_pipes[2]);
+    proc_close($node_reset);
+    Test::same('JS: new resolver forgets supplied partials, drops late answers', $expected_reset, $js_reset ?? trim($reset_err));
+} else {
+    echo "  skip  node not available — JS resolver reset not checked\n";
+}
+
+[$out, $warnings] = Test::warnings(fn() => $renderer->render('{{#each l}}{{this}}{{else}}none{{/each}}', ['l' => [0 => 'a', 2 => 'b']]));
+Test::ok('#each over a list with gaps warns', $out === 'none' && count($warnings) === 1 && str_contains($warnings[0], 'array_values'), var_export([$out, $warnings], true));
+[, $warnings] = Test::warnings(fn() => $renderer->render('{{#each l}}{{this}}{{/each}}', ['l' => [0 => 'a', 2 => 'b']]));
+Test::same('gap warning shows once per path', [], $warnings);
+[, $warnings] = Test::warnings(fn() => $renderer->render('{{#each o}}{{this}}{{/each}}', ['o' => ['x' => 1, 3 => 2]]));
+Test::same('no gap warning for associative arrays', [], $warnings);
+
 Test::same('{{{safe}}} sanitizes', '<b>x</b>', $renderer->render('{{{safe h}}}', ['h' => '<b onclick="x()">x</b><script>y()</script>']));
 Test::same('{{{safe}}} of falsy value is empty', '', $renderer->render('{{{safe h}}}', ['h' => 0]));
 Test::same('Stringable objects', 'str', $renderer->render('{{o}}', ['o' => new class implements Stringable {

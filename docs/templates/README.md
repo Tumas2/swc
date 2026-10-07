@@ -111,6 +111,8 @@ Templates receive the merged state from all stores (keyed by their store name) p
 {{ user.status || "Offline" }}      — fallback value
 ```
 
+The template decides what is raw, not the data: a value that holds HTML (rich text, a `<br>` from a textarea) needs `{{{ }}}`, otherwise its tags show up as text. Only output values raw that were sanitized when saved, or use `{{{ safe value }}}` to sanitize while rendering.
+
 **Helpers**
 
 A tag with arguments calls a helper; a tag without arguments is always a data lookup, so a helper never hides a value of the same name.
