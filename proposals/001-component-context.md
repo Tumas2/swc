@@ -1,7 +1,21 @@
 # 001 — Context in SSR
 
-**Status:** Draft. Recursive rendering is the prerequisite.
+**Status:** Implemented on branch `php-ssr-fixes` (not merged). Docs pending — tracked in [002](002-ssr-and-template-docs.md).
 **Affects:** `ComponentRegistry`, `Component`
+
+> **Outcome.** `ComponentRegistry` now renders nested components recursively and
+> resolves `uses` from the nearest ancestor's `provides`, mirroring the client
+> (manifest `stores` win collisions; plain values never shadow a store). The open
+> questions below were settled as:
+> 1. **Depth limit:** 32 levels, then a warning and the element is left unrendered.
+> 2. **Where substitution happens:** after interpolation, by scanning the rendered
+>    HTML for registered tags (`Markup`), so each child's `{{ }}` resolves against
+>    its own data.
+> 3. **`light_dom` / `host_attrs`:** children written inside a template are
+>    rendered in place with the same context; host attributes are passed to the
+>    `set_computed()` callback. `light_dom` passed to `render()` is inserted as-is.
+>
+> The rest of this file is the original draft, kept for the reasoning.
 
 > The PHP renderer is an intentional sketch, not a lagging implementation. It was
 > built to keep server-side rendering in view and to let experiments there shape

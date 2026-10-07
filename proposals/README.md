@@ -12,4 +12,5 @@ point the file here gets deleted or marked superseded.
 
 | # | Title | Status |
 |---|---|---|
-| 001 | [Context in SSR](001-component-context.md) | Draft — needs recursive rendering first |
+| 001 | [Context in SSR](001-component-context.md) | Implemented on `php-ssr-fixes`, docs pending |
+| 002 | [SSR rework and template extensions: docs to-do](002-ssr-and-template-docs.md) | Implemented, docs partly written |
