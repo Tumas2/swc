@@ -9,20 +9,19 @@ declare(strict_types=1);
  *
  *   require_once __DIR__ . '/path/to/swc/src/php/swc.php';
  *
- * Classes loaded (in dependency order):
- *   SWC\Markup, SWC\TemplateLoader, SWC\Sanitizer, SWC\NanoRenderer,
- *   SWC\StateInjector, SWC\Component, SWC\StoreRegistry, SWC\ComponentRegistry
+ * It registers an autoloader for the SWC\ namespace, so each class is loaded
+ * only when it is first used (rendering a template alone loads NanoRenderer,
+ * TemplateLoader and Sanitizer). With Composer, use its PSR-4 autoloading
+ * instead; this file is not needed.
  */
 
-$_swc_src = __DIR__ . '/src';
+spl_autoload_register(static function (string $class): void {
+    if (!str_starts_with($class, 'SWC\\')) {
+        return;
+    }
 
-require_once $_swc_src . '/Markup.php';
-require_once $_swc_src . '/TemplateLoader.php';
-require_once $_swc_src . '/Sanitizer.php';
-require_once $_swc_src . '/NanoRenderer.php';
-require_once $_swc_src . '/StateInjector.php';
-require_once $_swc_src . '/Component.php';
-require_once $_swc_src . '/StoreRegistry.php';
-require_once $_swc_src . '/ComponentRegistry.php';
-
-unset($_swc_src);
+    $file = __DIR__ . '/src/' . str_replace('\\', '/', substr($class, 4)) . '.php';
+    if (is_file($file)) {
+        require $file;
+    }
+});

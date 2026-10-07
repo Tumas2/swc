@@ -12,21 +12,15 @@ declare(strict_types=1);
  *  - preload_tags() in <head> for CSS
  *  - StoreRegistry::to_script_tag() sets window.__SWC_INITIAL_STATE__
  *  - Components rendered as Declarative Shadow DOM — content visible before JS loads
+ *  - set_computed() mirrors skills-grid's JS computed() on the server
  *  - about-section gets work-history and skills-grid as slotted light DOM children
  *  - JS loads, createStore() picks up SSR state, morph() is a no-op (zero flicker)
  */
 
-// ---------------------------------------------------------------------------
-// Autoload — load all PHP classes from swc/src/php/src/
-// ---------------------------------------------------------------------------
-$php_src = __DIR__ . '/../../src/php/src';
-foreach (['Sanitizer', 'NanoRenderer', 'StateInjector', 'Component', 'StoreRegistry', 'ComponentRegistry'] as $class) {
-    include_once $php_src . '/' . $class . '.php';
-}
+require_once __DIR__ . '/../../src/php/swc.php';
 
 use SWC\StoreRegistry;
 use SWC\ComponentRegistry;
-use SWC\Component;
 
 // ---------------------------------------------------------------------------
 // Store setup — load defaults from store.json files, merge server-side data
@@ -50,23 +44,25 @@ $components = new ComponentRegistry(
 );
 
 // ---------------------------------------------------------------------------
-// skills-grid needs 'filteredSkills' — a value computed by JS computed() on
-// the client side. For SSR we pre-compute it: no query = all skills.
+// skills-grid's template uses 'filteredSkills', which its JS computed()
+// derives from the store. set_computed() is the server-side equivalent.
 // ---------------------------------------------------------------------------
-$skills_data                   = $stores->get_state('skillsStore');
-$skills_data['filteredSkills'] = $skills_data['skills'];
+$components->set_computed('skills-grid', static function (array $data): array {
+    $query = strtolower(trim($data['skillsStore']['query'] ?? ''));
+    $all   = $data['skillsStore']['skills'] ?? [];
 
-$skills_grid_component = new Component(
-    fs_path:  $fs_base . '/skills-grid',
-    web_path: $web_base . '/skills-grid',
-    tag_name: 'skills-grid',
-);
+    return [
+        'filteredSkills' => $query === ''
+            ? $all
+            : array_values(array_filter($all, static fn(array $skill): bool => str_contains(strtolower($skill['name']), $query))),
+    ];
+});
 
 // ---------------------------------------------------------------------------
 // Build slotted children for about-section
 // ---------------------------------------------------------------------------
 $work_history_html = $components->render('work-history', ['slot' => 'history']);
-$skills_grid_html  = $skills_grid_component->render($skills_data, ['slot' => 'skills']);
+$skills_grid_html  = $components->render('skills-grid', ['slot' => 'skills']);
 
 $about_section_html = $components->render(
     tag_name:   'about-section',
